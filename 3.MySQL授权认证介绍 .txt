@@ -1,0 +1,394 @@
+MySQL授权认证介绍   
+
+     MySQL权限系统介绍
+
+     权限系统的作用是授予来自某个主机的某个用户可以查询、插入、修改、删除等数据库操作的权限。
+     权限控制(授权与回收)的执行语句包括create user, grant, revoke。
+     授权后的权限都会存放在MySQL的内部数据库中（数据库名叫mysql）,并在数据库启动之后把权限信息复制到内存中 。
+     MySQL用户的认证信息不光包括用户名，还要包含连接发起的主机(以下两个joe被认为不是同一个用户)。
+     SHOW GRANTS FOR ‘joe’@‘office.example.com’;
+     SHOW GRANTS FOR 'joe'@'home.example.com';
+
+     MySQL权限级别介绍
+
+     全局性的管理权限：作用于整个MySQL实例级别。
+     数据库级别的权限：作用于某个指定的数据库上或者所有的数据库上。
+     数据库对象级别的权限：作用于指定的数据库对象上（表、视图等）或者所有的数据库对象上。
+     权限存储在mysql库的user, db, tables_priv, columns_priv, and procs_priv这几个系统表中，待MySQL实例启动后就加载到内存中。
+
+     查看mysql实例默认root用户的权限(来自localhost)
+     mysql> show grants for root@localhost;
++---------------------------------------------------------------------+
+| Grants for root@localhost                                           |
++---------------------------------------------------------------------+
+| GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION |
+| GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION        |
++---------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+     对比root用户在几个权限系统表中的数据(mysql> use mysql;)
+mysql> select * from user where user='root' and host='localhost';      ##都是’Y’
+mysql> select * from db where user='root' and host='localhost';      ##无记录(Empty set (0.07 sec))
+mysql> select * from tables_priv where host='localhost' and user='root';      ##无记录(Empty set (0.00 sec))
+mysql> select * from columns_priv where user='root' and host='localhost';      ##无记录(Empty set (0.00 sec))
+mysql> select * from procs_priv where user='root' and host='localhost';      ##无记录(Empty set (0.00 sec))
+
+     查看mysql实例默认mysql.sys用户的权限(来自localhost)
+mysql> show grants for 'mysql.sys'@localhost;
++---------------------------------------------------------------+
+| Grants for mysql.sys@localhost                                |
++---------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'mysql.sys'@'localhost'                 |
+| GRANT TRIGGER ON `sys`.* TO 'mysql.sys'@'localhost'           |
+| GRANT SELECT ON `sys`.`sys_config` TO 'mysql.sys'@'localhost' |
++---------------------------------------------------------------+
+3 rows in set (0.00 sec)
+
+     对比mysql.sys用户在几个权限系统表中的数据
+mysql> select * from user where user='mysql.sys' and host='localhost';      ##都是'N'
+mysql> select * from db where user='mysql.sys' and host='localhost';      ##只有在sys数据库上的Trigger_priv字段为'Y'
+mysql> select * from tables_priv where host='localhost' and user='mysql.sys';      ##一条记录，在sys数据库的sys_config表上有select权限
+mysql> select * from columns_priv where user='mysql.sys' and host='localhost';      ##无记录(Empty set (0.00 sec)s)
+mysql> select * from procs_priv where user='mysql.sys' and host='localhost';      ##无记录(Empty set (0.00 sec))
+
+     MySQL权限详解(1)
+     All/All Privileges权限代表全局或者全数据库对象级别的所有权限。
+     Alter权限代表允许修改表结构的权限，但必须要求有create和insert权限配合。如果是rename表名，则要求有alter和drop原表，create和insert新表的权限。
+     Alter routine权限代表允许修改或者删除存储过程、函数的权限。
+     Create权限代表允许创建新的数据库和表的权限。
+     Create routine权限代表允许创建存储过程、函数的权限。
+     Create tablespace权限代表允许创建、修改、删除表空间和日志组的权限。
+     Create temporary tables权限代表允许创建临时表的权限。
+     Create user权限代表允许创建、修改、删除、重命名user的权限。
+     Create view权限代表允许创建视图的权限。
+
+     MySQL权限详解(2)
+     Delete权限代表允许删除行数据的权限。
+     Drop权限代表允许删除数据库、表、视图的权限，包括truncate table命令。
+     Event权限代表允许查询，创建，修改，删除MySQL事件。
+     Execute权限代表允许执行存储过程和函数的权限。
+     File权限代表允许在MySQL可以访问的目录进行读写磁盘文件操作，可使用的命令包括load data infile,select … into outfile,load file()函数。
+     Grant option权限代表是否允许此用户授权或者收回给其他用户你给予的权限。
+     Index权限代表是否允许创建和删除索引。
+     Insert权限代表是否允许在表里插入数据，同时在执行analyze table,optimize table,repair table语句的时候也需要insert权限。
+     Lock权限代表允许对拥有select权限的表进行锁定，以防止其他链接对此表的读或写。
+
+     MySQL权限详解(3)
+     Process权限代表允许查看MySQL中的进程信息，比如执行show processlist, mysqladmin processlist, show engine等命令。
+     Reference权限是在5.7.6版本之后引入，代表是否允许创建外键。
+     Reload权限代表允许执行flush命令，指明重新加载权限表到系统内存中，refresh命令代表关闭和重新开启日志文件并刷新所有的表。
+     Replication client权限代表允许执行show master status,show slave status,show binary logs命令。
+     Replication slave权限代表允许slave主机通过此用户连接master以便建立主从复制关系。
+     Select权限代表允许从表中查看数据，某些不查询表数据的select执行则不需要此权限，如Select 1+1，Select PI()+2；而且select权限在执行     update/delete语句中含有where条件的情况下也是需要的。
+     Show databases权限代表通过执行show databases命令查看所有的数据库名。
+     Show view权限代表通过执行show create view命令查看视图创建的语句。
+
+     MySQL权限详解(4)
+     Shutdown权限代表允许关闭数据库实例，执行语句包括mysqladmin shutdown Super权限代表允许执行一系列数据库管理命令，包括kill强制关闭某个连接命令，change master to创建复制关系命令，以及create/alter/drop server等命令。
+     Trigger权限代表允许创建，删除，执行，显示触发器的权限。
+     Update权限代表允许修改表中的数据的权限。
+     Usage权限是创建一个用户之后的默认权限，其本身代表连接登录权限。
+
+     系统权限表
+     权限存储在mysql库的user,db, tables_priv, columns_priv, and procs_priv这几个系统表中，待MySQL实例启动后就加载到内存中。
+
+     User表：存放用户账户信息以及全局级别（所有数据库）权限，决定了来自哪些主机的哪些用户可以访问数据库实例，如果有全局权限则意味着对所有数据库都有此权限。
+     Db表：存放数据库级别的权限，决定了来自哪些主机的哪些用户可以访问此数据库。
+     Tables_priv表：存放表级别的权限，决定了来自哪些主机的哪些用户可以访问数据库的这个表。
+     Columns_priv表：存放列级别的权限，决定了来自哪些主机的哪些用户可以访问数据库表的这个字段。
+     Procs_priv表：存放存储过程和函数级别的权限。
+
+     User和db权限表结构
+User权限表结构中的特殊字段
+Plugin,password,authentication_string三个字段存放用户认证信息。
+Password_expired设置成'Y'则表明允许DBA将此用户的密码设置成过期而且过期后要求用户的使用者重置密码（alter user/set password重置密码）。
+Password_last_changed作为一个时间戳字段代表密码上次修改时间，执行create user/alter user/set password/grant等命令创建用户或修改用户密码时此数值自动更新。
+Password_lifetime代表从password_last_changed时间开始此密码过期的天数。
+Account_locked代表此用户被锁住，无法使用。
+
+     Tables_priv和columns_priv权限表结构
+Timestamp和grantor两个字段暂时没用。
+Tables_priv和columns_priv权限值。
+     procs_priv权限表结构
+Routine_type是枚举类型，代表是存储过程还是函数。
+Timestamp和grantor两个字段暂时没用。
+
+     权限认证中的大小写敏感问题
+     字段user,password,authencation_string,db,table_name大小写敏感。
+     字段host,column_name,routine_name大小写不敏感。
+
+     User用户大小写敏感
+mysql> create user abc@localhost;
+Query OK, 0 rows affected (0.05 sec)
+mysql> create user abc@localhost;
+ERROR 1396 (HY000): Operation CREATE USER failed for 'abc'@'localhost'
+mysql> create user Abc@localhost;
+Query OK, 0 rows affected (0.00 sec)
+     Host主机名大小写不敏感
+mysql> create user abc@Localhost;
+ERROR 1396 (HY000): Operation CREATE USER failed for 'abc'@'localhost'
+
+     查看用户权限信息
+     查看已经授权给用户的权限信息
+mysql> show grants for 'root'@'localhost';
++---------------------------------------------------------------------+
+| Grants for root@localhost                                           |
++---------------------------------------------------------------------+
+| GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION |
+| GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION        |
++---------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+     查看用户的其他非授权信息
+mysql> show create user root@localhost;
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CREATE USER for root@localhost                                                                                                                                            |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CREATE USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' AS '*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B' REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+     MySQL授权用户
+     MySQL的授权用户由两部分组成：用户名和登录主机名
+     表达用户的语法为'user_name'@'host_name'
+     单引号不是必须，但如果其中包含特殊字符则是必须的 。
+     ''@'localhost'代表匿名登录的用户
+     Host_name可以使主机名或者ipv4/ipv6的地址。
+     localhost代表本机，127.0.0.1代表ipv4的本机地址，::1代表ipv6的本机地址。
+     Host_name字段允许使用%和_两个匹配字符，比如'%'代表所有主机，'%.mysql.com'代表来自mysql.com这个域名下的所有主机，'192.168.1.%'代表所有来自192.168.1网段的主机。
+
+     MySQL修改权限的生效
+     执行Grant,revoke,set password,rename user命令修改权限之后，MySQL会自动将修改后的权限信息同步加载到系统内存中。
+     如果执行insert/update/delete操作上述的系统权限表之后，则必须再执行刷新权限命令才能同步到系统内存中，刷新权限命令包括：flush privileges/mysqladmin flush-privileges/mysqladmin reload
+     如果是修改tables和columns级别的权限，则客户端的下次操作新权限就会生效。
+     如果是修改database级别的权限，则新权限在客户端执行use database命令后生效。
+     如果是修改global级别的权限，则需要重新创建连接新权限才能生效。
+     --skip-grant-tables可以跳过所有系统权限表而允许所有用户登录，只在特殊情况下暂时使用。
+
+     MySQL用户连接 (用户root/密码root)
+     
+[root@localhost ~]# cd /usr/local/mysql/bin/
+     方法一：
+[root@localhost bin]# mysql -u root -p
+Enter password: root
+     方法二：
+[root@localhost bin]# mysql --user=root --password
+Enter password: root
+     方法三：
+[root@localhost bin]# mysql --user=root --password=password root
+     方法四：
+[root@localhost bin]# mysql -u root -proot
+
+     创建MySQL用户
+     有两种方式创建MySQL授权用户
+     1、执行create user/grant命令（推荐方式）
+     2、通过insert语句直接操作MySQL系统权限表
+
+mysql> create user 'username'@'localhost' identified by 'password';
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> grant all privileges on *.* to 'username'@'localhost' with grant option;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create user 'username'@'%' identified by 'password';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> grant all privileges on *.* to 'username'@'%' with grant option;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create user 'admin'@'localhost' identified by 'admin_password';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> grant reload,process on *.* to 'admin'@'localhost';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> show grants for 'admin'@'localhost';
++-----------------------------------------------------+
+| Grants for admin@localhost                          |
++-----------------------------------------------------+
+| GRANT RELOAD, PROCESS ON *.* TO 'admin'@'localhost' |
++-----------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> show grants for 'admin'@'localhost'\G
+*************************** 1. row ***************************
+Grants for admin@localhost: GRANT RELOAD, PROCESS ON *.* TO 'admin'@'localhost'
+1 row in set (0.00 sec)
+
+mysql> create user 'test'@'localhost' identified by 'test';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> grant select(id) on test.temp to 'test'@'localhost';
+Query OK, 0 rows affected (1.41 sec)
+
+     回收MySQL用户权限
+     通过revoke命令收回用户权限
+
+mysql> show grants for 'mysql.sys'@'localhost';
++---------------------------------------------------------------+
+| Grants for mysql.sys@localhost                                |
++---------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'mysql.sys'@'localhost'                 |
+| GRANT TRIGGER ON `sys`.* TO 'mysql.sys'@'localhost'           |
+| GRANT SELECT ON `sys`.`sys_config` TO 'mysql.sys'@'localhost' |
++---------------------------------------------------------------+
+3 rows in set (0.00 sec)
+
+mysql> revoke select on sys.sys_config from 'mysql.sys'@'localhost';
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> show grants for 'mysql.sys'@'localhost';
++-----------------------------------------------------+
+| Grants for mysql.sys@localhost                      |
++-----------------------------------------------------+
+| GRANT USAGE ON *.* TO 'mysql.sys'@'localhost'       |
+| GRANT TRIGGER ON `sys`.* TO 'mysql.sys'@'localhost' |
++-----------------------------------------------------+
+2 rows in set (0.00 sec)
+
+     删除MySQL用户
+     通过执行drop user命令删除MySQL用户
+
+mysql> drop user 'username'@'localhost';
+Query OK, 0 rows affected (0.01 sec)
+
+设置MySQL用户资源限制
+     通过设置全局变量max_user_connections可以限制所有用户在同一时间连接MySQL实例的数量，但此参数无法对每个用户区别对待，所以MySQL提供了对每个用户的资源限制管理。
+     MAX_QUERIES_PER_HOUR：一个用户在一个小时内可以执行查询的次数（基本包含所有语句）。
+     MAX_UPDATES_PER_HOUR：一个用户在一个小时内可以执行修改的次数（仅包含修改数据库或表的语句）。
+     MAX_CONNECTIONS_PER_HOUR：一个用户在一个小时内可以连接MySQL的时间。
+     MAX_USER_CONNECTIONS：一个用户可以在同一时间连接MySQL实例的数量。
+     从5.0.3版本开始，对用户'user'@'%.example.com'的资源限制是指所有通过example.com域名主机连接user用户的连接，而不是分别指从host1.example.com和host2.example.com主机过来的连接。
+
+     通过执行create user/alter user设置/修改用户的资源限制
+
+mysql> create user 'username'@'localhost' identified by 'password' with max_queries_per_hour 20 max_updates_per_hour 10 max_connections_per_hour 5 max_user_connections 2;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> alter user 'username'@'localhost' with max_queries_per_hour 100;
+Query OK, 0 rows affected (0.00 sec)
+
+     取消某项资源限制既是把原先的值修改成0
+
+mysql> alter user 'username'@'localhost' with max_connections_per_hour 0;
+Query OK, 0 rows affected (0.05 sec)
+
+     当针对某个用户的max_user_connections非0时，则忽略全局系统参数max_user_connections，反之则全局系统参数生效。
+
+     设置MySQL用户的密码
+     执行create user创建用户和密码
+
+mysql> create user 'username1'@'localhost' identified by 'password';
+Query OK, 0 rows affected (0.01 sec)
+
+     修改用户密码的方式包括：
+
+     方法一：
+mysql> alter user 'username1'@'localhost' identified by 'password1';
+Query OK, 0 rows affected (0.00 sec)
+     方法二：
+mysql> set password for 'username1'@'localhost' = password('password2');
+Query OK, 0 rows affected, 1 warning (0.01 sec)
+     方法三：
+mysql> grant usage on *.* to 'username1'@'localhost' identified by 'password3';
+Query OK, 0 rows affected, 1 warning (0.03 sec)
+
+     修改本身用户密码的方式包括：
+
+     方法一：
+mysql> alter user user() identified by '123456';
+Query OK, 0 rows affected (0.01 sec)
+     方法二：
+mysql> set password=password('root');
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+     设置MySQL用户密码过期策略
+     设置系统参数default_password_lifetime作用于所有的用户账户
+     default_password_lifetime=180      设置180天过期
+     default_password_lifetime=0      设置密码不过期
+     如果为每个用户设置了密码过期策略，则会覆盖上述系统参数
+
+     密码90天过期：
+mysql> alter user 'username1'@'localhost' password expire interval 90 day;
+Query OK, 0 rows affected (0.00 sec)
+     密码不过期：
+mysql> alter user 'username1'@'localhost' password expire never;
+Query OK, 0 rows affected (0.00 sec)
+     默认过期策略：
+mysql> alter user 'username1'@'localhost' password expire default;
+Query OK, 0 rows affected (0.00 sec)
+
+     手动强制某个用户密码过期
+          
+mysql>  alter user 'username'@'localhost' password expire;
+Query OK, 0 rows affected (0.00 sec)
+
+[root@localhost bin]# cd /usr/local/mysql/bin/
+[root@localhost bin]# mysql -u username -p
+Enter password:
+
+mysql> select 1;
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+
+mysql> alter user user() identified by 'password';
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> select 1;
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set (0.01 sec)
+
+     MySQL用户lock
+     通过执行create user/alter user命令中带account lock/unlock子句设置用户的lock状态
+     Create user语句默认的用户是unlock状态
+
+mysql> create user 'username3'@'localhost' identified by 'password3' account lock;
+Query OK, 0 rows affected (0.01 sec)
+
+     当客户端使用lock状态的用户登录MySQL时，会收到如此报错
+
+[root@localhost bin]# mysql -u username3 -p
+Enter password:
+ERROR 3118 (HY000): Access denied for user 'username3'@'localhost'. Account is locked.
+
+     Alter user语句默认不会修改用户的lock/unlock状态
+
+mysql> alter user 'mysql.sys'@localhost account lock;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> alter user 'mysql.sys'@localhost account unlock;
+Query OK, 0 rows affected (0.00 sec)
+
+     企业应用中的常规MySQL用户
+     企业生产系统中MySQL用户的创建通常由DBA统一协调创建，而且按需创建
+     DBA通常直接使用root用户来管理数据库 通常会创建指定业务数据库上的增删改查、临时表、执行存储过程的权限给应用程序来连接数据库
+
+mysql> Create user 'app_full'@'10.0.0.%' identified by 'mysql';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> Grant select,update,insert,delete,create temporary tables,execute on test.* to 'app_full'@'10.0.0.%';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show grants for 'app_full'@'10.0.0.%';
++-------------------------------------------------------------------------------------------------------------+
+| Grants for app_full@10.0.0.%                                                                                |
++-------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'app_full'@'10.0.0.%'                                                                 |
+| GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES, EXECUTE ON `test`.* TO 'app_full'@'10.0.0.%' |
++-------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+     通常也会创建指定业务数据库上的只读权限给特定应用程序或某些高级别人员来查询数据，防止数据被修改
+
+mysql> Create user app_readonly identified by 'mysql';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> Grant select on test.* to app_readonly identified by 'mysq';
+Query OK, 0 rows affected, 1 warning (0.01 sec)
+
+     企业应用中的MySQL用户密码设定 企业生产系统中MySQL用户的密码设定有严格的规范，通常要有密码复杂度、密码长度等要求。
+
+     搜索网上的密码生成器，能按要求生成随机密码 ：https://suijimimashengcheng.51240.com/ 

@@ -1,0 +1,176 @@
+MySQL入门介绍   
+
+     MySQL数据库介绍
+
+     MySQL是一种开放源代码的关系型数据库管理系统（RDBMS），MySQL数据库系统使用最常用的数据库管理语言--结构化查询语言（SQL）进行数据库管理。
+     MySQL的历史最早可以追溯到1979年，那时Oracle也才刚刚开始，微软的SQL Server影子都没有。
+     在2008年1月16号 MySQL被Sun公司收购。
+     2009年,SUN又被Oracle收购 。
+体积小、速度快、总体拥有成本低，尤其是开放源码这一特点，使得许多企业选择了MySQL作为数据库。
+
+     MySQL官网介绍
+
+     主页：https://www.oracle.com/mysql/index.html
+     下载主页面：https://www.mysql.com/downloads/
+     社区资源下载页面：https://dev.mysql.com/downloads/
+     MySQL社区版下载页面：https://dev.mysql.com/downloads/mysql/
+
+     MySQL相关产品介绍
+
+     Oracle MySQL Cloud Service (commercial)：商业付费软件，基于MySQL企业版和Oracle云服务提供企业级的MySQL数据库服务。
+     MySQL Enterprise Edition(commercial)：商业付费软件，除了提供MySQL数据库服务之外，又包含了connector(程序连接接口)，partition(表分区)，企业级的monitor(监控)，HA(高可用)，backup(备份)，Scalability(扩展)等服务。
+     MySQL Cluster CGE(commercial)：商业付费软件，基于MySQL Cluster和企业版拥有的各项功能提供企业级的高并发 、高吞吐的数据库服务。
+     MySQL Community Edition：免费社区软件，提供基础的数据库服务和其他衍生服务。
+
+     MySQL 社区软件相关产品介绍
+
+     MySQL Community Server：最流行的开源数据库管理软件，当前最新版本是5.7。
+     MySQL Cluster：基于MySQL数据库而实现的集群服务，自身能提供高并发高负载等特性。
+     MySQL Fabric：MySQL官方提供的关于MySQL数据库高可用和数据分片的解决方案。
+     MySQL Connectors：为应用程序提供JDBC/ODBC等访问MySQL数据库的接口服务。
+
+     MySQL Community Server各版本主要区别
+
+     MySQL4.0版本：增加了子查询的支持，字符集增加UTF-8，GROUP BY语句增加了ROLLUP，mysql.user表采用了更好的加密算法，InnoDB开始支持单独的表空间。
+     MySQL5.0版本：增加了Stored procedures、Views、Cursors、Triggers、XA transactions的支持，增加了INFORATION_SCHEMA系统数据库 。
+     MySQL5.5版本：默认存储引擎更改为InnoDB，提高性能和可扩展性，增加半同步复制。
+     MySQL5.6版本：提高InnoDB性能，支持延迟复制。          
+     MySQL5.7版本：提升数据库性能和存储引擎，更健壮的复制功能，增加sys系统库存放数据库管理信息。
+
+     MySQL安装——准备
+
+     （1）检查操作系统和MySQL版本的适配度
+     （2）选择安装的MySQL版本 首先判断是否要和公司其他已经安装好的MySQL保持版本一致 如果没有上述要求，则一般会安装最新版本（目前是5.7）
+     如果不是实验新功能性质，则不要选择development release，而要安装General Availability (GA) release（代表稳定版本，可在生产系统使用）
+
+     选择安装MySQL的方式
+
+     二进制安装包的方式（RPM,ZIP,Tar等）
+     源码方式（source code）
+     一般会选择二进制安装方式 ，如果有特殊需求，比如修改一部分源码或修改MySQL深层次的配置，则会选择源码方式。
+
+     Linux系统下二进制Tar包 安装MySql 5.7.17全过程及注意事项
+
+1、下载mysql-5.7.20-linux-glibc2.12-x86_64.tar包
+
+2、ftp 上传 mysql-5.7.20-linux-glibc2.12-x86_64.tar  到服务器 /usr/local/目录
+
+3、cd /usr/local/      ##进入local目录
+
+4、[root@localhost local]# tar -xvf mysql-5.7.17-linux-glibc2.5-x86_64.tar
+     [root@localhost local]# tar -zxvf mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz        ##解压mysql压缩包
+
+5、[root@localhost local]# mv mysql-5.7.15-linux-glibc2.5-x86_64 mysql    ##重命名mysql目录
+
+6、[root@localhost local]# groupadd mysql      ##添加一个mysql组
+
+7、[root@localhost local]# useradd -r -g mysql mysql      ##添加一个用户
+
+8、[root@localhost local]# chown -R mysql mysql/      ##把mysql目录授权 给mysql用户
+
+9、[root@localhost local]# mkdir /home/mysql-data      ##创建mysql-data目录
+
+10、[root@localhost local]# chown -R mysql:mysql /home/mysql-data      ##把mysql-data目录授权给mysql组中的mysql用户
+
+11、[root@localhost local]# chgrp -R mysql /home/mysql-data      ##chgrp命令可采用群组名称或群组识别码的方式改变文件或目录的所属群组。（-R：处理指定目录以及其子目录下的所有文件）使用权限是超级用户。
+
+12、cd /usr/local/mysql      ##进入mysql目录
+
+13、cp support-files/my-default.cnf ./my.cnf       ##拷贝support-files目录下的my-default.cnf文件到当前目录的my.cnf文件（如果找不到my-default.cnf 直接去 vi /etc/my.cnf）
+
+14、vi /usr/local/mysql/my.cnf      ##编辑my.cnf文件（如果找不到my-default.cnf 直接编辑 vi /etc/my.cnf）
+     basedir = /usr/local/mysql     ##basedir 为mysql 的路径
+     datadir = /home/mysql-data     ##datadir 为mysql的 data 包，里面存放着mysql自己的包
+     port = 3306      ##mysql端口
+     #server-id = 100     ##服务器ID
+     socket = /tmp/mysql.sock    
+     ##（其他的全部注释掉）
+
+15、cp -fr  my.cnf  /etc/my.cnf      ##拷贝my.cnf文件到etc目录下（若etc目录下有则替换）（如果编辑的是 /etc/my.cnf 省略这一步）
+
+16、vi /etc/profile      ##编辑etc目录下的profile文件
+      export PATH=/usr/local/mysql/bin:$PATH     ##在profile文件最后添加
+
+17、source /etc/profile      ##重新加载etc目录下的profile文件
+
+18、 [root@localhost mysql]# cp -a ./support-files/mysql.server  /etc/init.d/mysqld     ##拷贝
+
+19、[root@localhost mysql]# ./bin/mysqld --initialize --user=mysql --basedir=/usr/local/mysql/  --datadir=/home/mysql-data     ##初始化
+重要：
+此处需要注意记录生成的临时密码，如上文：jgghKqQhZ8*e
+注：
+如执行后报错内容为 ./bin/mysqld: error while loading shared libraries: libaio.so.1: cannot open shared object file:
+No such file or directory
+CentOS7.2需要安装libaio，执行以下命令进行安装
+[root@localhost mysql]# yum install libaio
+安装完成后重新执行初始化命令
+
+20、[[[password]]]] ##注意记录生成的临时密码，如：jgghKqQhZ8*e
+
+21、/etc/init.d/mysqld start      ##启动mysql（启动完成后可通过ps –ef查看MySQL进程）
+
+22、/etc/init.d/mysqld status      ##查看mysql状态
+
+23、[root@localhost mysql]# bin/mysql -u root -p         ##登录mysql
+
+24、Enter password:        ##输入mysql生成的临时密码，如：jgghKqQhZ8*e
+
+25、mysql> set password=password('root');          ##修改密码
+       Query OK, 0 rows affected, 1 warning (0.00 sec)
+   
+26、grant all privileges on *.* to root@'%' identified by 'A123456';     ##创建新用户
+
+27、flush privileges;      ##刷新
+
+28、use mysql;      ##进入mysql库
+
+29、select host,user from user;      ##查看新用户
+
+30、远程链接数据库，或者重启。
+
+     MySQL常用客户端工具
+
+     Aqua：Aqua data studio是一款支持连接多种数据库类型的客户端工具。
+
+     Navicat：Navicat for MySQL是一款专门针对MySQL的客户端工具。
+    下载地址：http://www.cr173.com/soft/38153.html
+
+     SQLyog：SQLyog是一款简洁高效、功能强大的图形化MySQL数据库管理工具。
+    下载地址：http://www.cr173.com/soft/126913.html
+
+
+     MySQL配置文件参数（启动相关）介绍 （/etc/my.cnf ）
+
+basedir = /usr/local/mysql           ##代表MySQL安装路径
+datadir = /home/mysql-data           ##代表MySQL的数据文件路径 。目录里为每一个数据库创建了一个文件夹Ibdata1和ib_logfile0/1为三个专为innodb存放数据和日志的共享文件（MySQL基本文件结构）。
+port = 3306          ##指定MySQL的侦听端口
+log-error=/usr/local/mysql/data/M00006.err          ##记录MySQL启动日志和运行错误日志
+bind-address           ##(默认是*) *代表接受所有来自IPV4、IPV6主机网卡的TCP/IP连接 0.0.0.0代表接受所有来自IPV4主机网卡的TCP/IP的连接 指定的IP如127.0.0.1，代表只接受此地址请求的TCP/IP连接
+character-set-server     ##(默认是latin1) 指定MySQL的字符集
+collation-server     ##(默认是latin1_swedish_ci) 指定MySQL的排序规则
+default-storage-engine     ##(默认是InnoDB) 指定MySQL的默认存储引擎
+default-time-zone     ##指定默认时区，如果没有指定则和系统默认时区一致
+open-files-limit     ##(默认5000)指定Mysqld运行过程中可以打开的文件数，避免出现” Too many open files”报错
+pid-file=/usr/local/mysql/data/M00006.pid      ##指定Mysqld进程对应的程序ID文件，默认是在数据文件目录里
+Skip-grant-tables      ##指定避开MySQL内部的权限表启动服务
+Tmpdir      ##指定临时表文件的存放路径
+
+     MySQL启动和关停方法，客户端连接，切换数据库操作SQL
+    
+     修改MySQL默认端口后重启
+          修改/etc/my.cnf文件 port=3307
+          /etc/init.d/mysql.server restart    ##重启服务
+
+     修改MySQL默认字符集后重启
+          修改/etc/my.cnf文件 character-set-server = utf8
+          collation-server = utf8_unicode_ci
+          /etc/init.d/mysql.server restart    ##重启服务
+
+     查看重启后的MySQL字符集
+          mysql> show variables like 'character_set_server%';
+
+     修改MySQL数据文件目录后重启
+          /etc/init.d/mysql.server stop     ##关闭数据库
+          数据目录data转移到/data/目录下 mv data /data/
+          修改my.cnf中的datadir参数 datadir = /data/data
+          /etc/init.d/mysql.server start     ##开启MySQL服务
