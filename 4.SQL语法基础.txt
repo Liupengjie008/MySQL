@@ -1,0 +1,952 @@
+SQL语法基础   
+    
+     Create database语句
+     Create database语句是在MySQL实例上创建一个指定名称的数据库，create schema语句的语义和create database是一样的。
+     当创建的数据库本身存在而且没有写明if not exists子句时，则创建数据库的语句会报错。
+     create_specification子句指明创建的数据库的属性，并存储在db.opt文件中。
+     Character set属性指明此数据库的默认字符集 ##后续会讲到
+     Collate属性指明此数据库的默认排序规则 ##后续会讲到
+     创建后的数据库在数据文件所在目录会创建一个自己的文件目录，用来包含后续创建的表文件。当然，也可以直接通过mkdir的操作系统命令在数据目录创建文件夹，则MySQL会识别为一个数据库，并在执行show databases命令时可以看到。
+
+[root@localhost ~]# cd /home/mysql-data/
+[root@localhost mysql-data]# mkdir test4
+[root@localhost mysql-data]# chown mysql:mysql test4 -R
+
+mysql> show create database test4;
++----------+------------------------------------------------------------------+
+| Database | Create Database |
++----------+------------------------------------------------------------------+
+| test4 | CREATE DATABASE `test4` /*!40100 DEFAULT CHARACTER SET latin1 */ |
++----------+------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> create database test3;       ##创建数据库成功
+Query OK, 1 row affected (0.00 sec)
+
+mysql> create database test3;       ##再次创建数据库失败
+ERROR 1007 (HY000): Can't create database 'test3'; database exists
+
+mysql> create database if not exists test3;       ##语句执行成功
+Query OK, 1 row affected, 1 warning (0.00 sec)
+
+mysql> use test3;       ##切换到test3数据库
+Database changed
+
+     Create table语句
+
+     Create table语句是在数据库中创建表。
+     Tbl_name表示被创建的表名，默认在当前数据库下创建此表，当然也可以指定在某个数据库下创建表。
+     If not exists表示当相同的表名存在时，则不执行此创建语句，避免语句执行错误。
+
+mysql> create table students2(sid int,sname varchar(10));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table test3.students3(sid int,sname varchar(10));##在test3这个数据库下创建students3表
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table if not exists students2(sid int,sname varchar(10));
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+     Temporary关键词表示创建的是临时表，临时表仅对本链接可见，另外的数据库链接不可见，当本链接断开时，临时表也自动被drop掉。
+
+mysql> create temporary table temp1(sid int,sname varchar(10));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert into temp1 values(1,'a');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from temp1;
++------+-------+
+| sid | sname |
++------+-------+
+| 1 | a |
++------+-------+
+1 row in set (0.00 sec)
+
+     另一个数据库链接执行相同的查询语句查不到数据
+
+mysql> use test3;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+
+mysql> select * from temp1;
+ERROR 1146 (42S02): Table 'test3.temp1' doesn't exist
+
+     本数据库链接断开后再链接，临时表也不存在。
+
+mysql> select * from temp1;
+ERROR 1146 (42S02): Table 'test3.temp1' doesn't exist
+
+     Like关键词表示基于另外一个表的定义复制一个新的空表，空表上的字段属性和索引都和原表相同。
+
+mysql> create table students_copy like students2;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show create table students_copy;
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| Table | Create Table |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| students_copy | CREATE TABLE `students_copy` (
+`sid` int(11) DEFAULT NULL,
+`sname` varchar(10) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+     Create table … as select语句表示创建表的同时将select的查询结果数据插入到表中，但索引和主外键信息都不会同步过来。
+
+mysql> create table students_copy2 as select * from students2;
+Query OK, 0 rows affected (0.00 sec)
+Records: 0 Duplicates: 0 Warnings: 0
+
+mysql> desc students_copy2;
++-------+-------------+------+-----+---------+-------+
+| Field | Type | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| sid | int(11) | YES | | NULL | |
+| sname | varchar(10) | YES | | NULL | |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+
+     Ignore和replace表示在插入数据的过程中如果新表中碰到违反唯一约束的情况下怎么处理，ignore表示不插入，replace表示替换已有的数据，默认两个关键词都不写则碰到违反的情况会报错。
+     Data_type表示定义的字段类型，后续会有详细介绍。
+     Not null/null表示字段是否允许为空，默认为null表示允许为空，not null表示需要对此字段明确数值，或者要有默认值，否则报错。
+
+mysql> create table students4(sid int not null,sname varchar(10));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert into students4 (sname) values ('aaa');
+ERROR 1364 (HY000): Field 'sid' doesn't have a default value
+
+     Default表示设置字段的默认值
+
+mysql> create table students5(sid int,sname varchar(10),gender int default 0);
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert into students5 values (1,'a',default);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students5(sid,sname) values(2,'b');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from students5;
++------+-------+--------+
+| sid | sname | gender |
++------+-------+--------+
+| 1 | a | 0 |
+| 2 | b | 0 |
++------+-------+--------+
+2 rows in set (0.00 sec)
+
+     Auto_increment表示字段为整数或者浮点数类型的value+1递增数值，value为当前表中该字段最大的值，默认是从1开始递增；一个表中只容许有一个自增字段，且该字段必须有key属性，不能含有default属性，且插入负值会被当成很大的正数。
+
+mysql> create table students6(sid int auto_increment,sname varchar(10));
+ERROR 1075 (42000): Incorrect table definition; there can be only one auto column and it must be defined as a key
+
+mysql> create table students6(sid int primary key auto_increment,sname varchar(10));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert into students6(sname) values('a');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students6(sid,sname) values(3,'b');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students6(sname) values('c');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from students6;
++-----+-------+
+| sid | sname |
++-----+-------+
+| 1 | a |
+| 3 | b |
+| 4 | c |
++-----+-------+
+3 rows in set (0.00 sec)
+
+     Column_format目前仅在ndb存储引擎的表上有用，表示该字段的存储类型是fixed, dynamic或者是default。
+     Storage目前也仅在ndb存储引擎的表上有用。
+     Constraint表示为主键、唯一键、外键等约束条件命名，如果没有命名则MySQL会默认给一个。
+     Primary key表示该字段为主键，主键字段必须唯一，必须非空，一个表中只能有一个主键，主键可以包含一个或多个字段。
+     Key/index表示索引字段。
+     Unique表示该字段为唯一属性字段，且允许包含多个null值。
+     Foreign key表示该字段为外键字段。
+
+mysql> create table gender(gender_id int(11) not null,name varchar(11) default null,primary key (gender_id));
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create table students7(sid int not null primary key auto_increment,sname varchar(10) unique,gender int,constraint for_1 foreign key (gender) references gender(gender_id));
+Query OK, 0 rows affected (0.01 sec)
+
+     例题：
+设计一个学生选课数据库系统创建一个名为course的数据库在该数据库下创建以下几个表：
+Students表：sid整型自增主键，sname字符串64位，gender字符串12位，dept_id整型并外键到dept表的id字段。
+Dept表：id整型自增主键，dept_name字符串64位。
+Course表：id整型自增字段主键，course_name字符串64位，teacher_id整型外键到teacher表的id字段。
+Teacher表：id整型自增字段主键，name字符串64位，dept_id整型外键到dept表的id字段。
+Students表和teacher表的dept_id为非空。
+
+     答案：
+
+mysql> create database course;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> use course;
+Database changed
+mysql> create table dept(id int auto_increment primary key,dept_name varchar(64));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table students(sid int auto_increment primary key,sname varchar(54),gender varchar(12),dept_id int not null,constraint for_1 foreign key(dept_id) references dept(id));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table teacher(id int auto_increment primary key,name varchar(64),dept_id int not null, constraint for_2 foreign key(dept_id) references dept(id));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table course(id int auto_increment primary key,course_name varchar(64),teacher_id int,constraint for_3 foreign key(teacher_id) references teacher(id));
+Query OK, 0 rows affected (0.01 sec)
+
+     Insert语句
+     Insert语句用于插入数据到表中，其基本语法有以下三种：
+
+mysql> desc students;
++-------+-------------+------+-----+---------+-------+
+| Field | Type | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| sid | int(11) | YES | | NULL | |
+| sname | varchar(20) | YES | | NULL | |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+     方法一：
+mysql> insert into students values(1,'aaa');
+Query OK, 1 row affected (0.00 sec)
+     方法二：
+mysql> insert into students set sid=2,sname='bbb';
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students_copy values(3,'ccc');
+Query OK, 1 row affected (0.00 sec)
+     方法三：
+mysql> insert into students select * from students_copy;
+Query OK, 1 row affected (0.01 sec)
+Records: 1 Duplicates: 0 Warnings: 0
+
+mysql> select * from students;
++------+-------+
+| sid | sname |
++------+-------+
+| 1 | aaa |
+| 2 | bbb |
+| 3 | ccc |
++------+-------+
+3 rows in set (0.00 sec)
+
+     其中insert…values和insert…set两种语句都是将指定的数据插入到现成的表中，而insert…select语句是将另外表中数据查出来并插入到现成的表中。
+     Partition子句代表可以将数据插入到指定的表分区中。
+     Tbl_name代表将数据插入到的目标表。
+     Col_name代表要插入指定数据的目标表列，如果是多列则用逗号隔开，如果目标表中的某些列没有在Insert语句中指定，则这些列会插入默认值，当然可以使用default显视指定插入默认值。
+     Values中除了可以指定确定的数值之外，还可以使用表达式expr。
+     INSERT INTO tbl_name (col1,col2) VALUES(15,col1*2);      ##正确
+     INSERT INTO tbl_name (col1,col2) VALUES(col2*2,15);      ##错误
+
+mysql> insert into students(sid,sname) values(4,'ddd');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students(sid) values(5);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into students(sname) values('eee');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students value(2*3,'fff');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from students;
++------+-------+
+| sid  | sname |
++------+-------+
+|    1 | aaa   |
+|    2 | bbb   |
+|    3 | ccc   |
+|    4 | ddd   |
+|    5 | NULL  |
+| NULL | eee   |
+|    6 | fff   |
++------+-------+
+7 rows in set (0.00 sec)
+
+     Insert…values语句不光可以插入一条数据，也可以插入多条数据。
+     INSERT INTO tbl_name (a,b,c) VALUES(1,2,3),(4,5,6),(7,8,9);
+
+mysql> insert into students values (7,'abc'),(8,'bcd');
+Query OK, 2 rows affected (0.00 sec)
+Records: 2 Duplicates: 0 Warnings: 0
+
+     Insert…values和insert…select语句的执行结果如下
+     Records: 100 Duplicates: 0 Warnings: 0
+     Records代表此语句操作了多少行数据，但不一定是多少行被插入的数据，因为如果存在相同的行数据且违反了某个唯一性，则duplicates会显示非0数值，warning代表语句执行过程中的一些警告信息。
+     low_priority关键词代表如果有其他链接正在读取目标表数据，则此insert语句需要等待读取完成。
+     low_priority和high_priority关键词仅在MyISAM, MEMORY, and MERGE三种存储引擎下才生效。
+     Ignore关键词代表insert语句如果违反主键和唯一键的约束条件，则不报错而只产生警告信息，违反的行被丢弃，而不是整个语句回退；在数据类型转换有问题时如果有ignore则只产生警告信息，而不是语句回退。
+
+mysql> create table students_test(
+    -> sid int(11) default null,
+    -> sname varchar(20) default null,
+    -> gender int(11) default null,
+    -> unique key idx_st_sid (sid),
+    -> key idx_st_union (sname)
+    -> )engine=InnoDB;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> desc students_test;
++--------+-------------+------+-----+---------+-------+
+| Field  | Type        | Null | Key | Default | Extra |
++--------+-------------+------+-----+---------+-------+
+| sid    | int(11)     | YES  | UNI | NULL    |       |
+| sname  | varchar(20) | YES  | MUL | NULL    |       |
+| gender | int(11)     | YES  |     | NULL    |       |
++--------+-------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+
+mysql> insert into students_test values (1,'abc',1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students_test values (2,'abc',1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students_test values (3,'abc',1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from students_test;
++------+-------+--------+
+| sid  | sname | gender |
++------+-------+--------+
+|    1 | abc   |      1 |
+|    2 | abc   |      1 |
+|    3 | abc   |      1 |
++------+-------+--------+
+3 rows in set (0.00 sec)
+
+mysql> insert into students_test values (1,'bbb',0);
+ERROR 1062 (23000): Duplicate entry '1' for key 'idx_st_sid'
+mysql> insert ignore into students_test values (1,'bbb',0);
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> show warnings;
++---------+------+------------------------------------------+
+| Level   | Code | Message                                  |
++---------+------+------------------------------------------+
+| Warning | 1062 | Duplicate entry '1' for key 'idx_st_sid' |
++---------+------+------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> insert ignore into students_test values (1,'aa',0),(5,'bb',1);
+Query OK, 1 row affected, 1 warning (0.00 sec)
+Records: 2  Duplicates: 1  Warnings: 1
+
+mysql> select * from students_test;
++------+-------+--------+
+| sid  | sname | gender |
++------+-------+--------+
+|    1 | abc   |      1 |
+|    2 | abc   |      1 |
+|    3 | abc   |      1 |
+|    5 | bb    |      1 |
++------+-------+--------+
+4 rows in set (0.00 sec)
+
+mysql> create table students_test_copy like students_test;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert ignore into students_test_copy select * from students_test;
+Query OK, 4 rows affected (0.00 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> insert ignore into students_test select * from students_test_copy;
+Query OK, 0 rows affected, 4 warnings (0.00 sec)
+Records: 4  Duplicates: 4  Warnings: 4
+
+     Insert…select语句详解
+     用于从另外的表中查出记录并插入到目标表中
+     INSERT INTO tbl_temp2 (fld_id) SELECT tbl_temp1.fld_order_id FROM tbl_temp1 WHERE tbl_temp1.fld_order_id > 100;
+     当目标表和select语句中的表相同时，则会先将select语句的结果存放在临时表中，再插入到目标表中(注意执行顺序)
+
+mysql> insert into students select * from students;
+Query OK, 9 rows affected (0.00 sec)
+Records: 9  Duplicates: 0  Warnings: 0
+
+     Insert delayed语句详解
+     在5.6.6版本之前，用来表示此插入语句当碰到其他链接正在使用目标表时就等待，直到目标表没被用时再插入数据。
+     在5.7版本时，delayed关键词就不再支持，但语句执行时不会报错，只会产生一个警告信息，后续版本会去掉此关键词。
+
+mysql> insert delayed into students select * from students;
+Query OK, 18 rows affected, 1 warning (0.00 sec)
+Records: 18  Duplicates: 0  Warnings: 1
+
+     Insert on duplicate key update语句详解
+     当insert语句中使用on duplicate key update子句时，如果碰到当前插入的数据违反主键或唯一键的唯一性约束，则Insert会转变成update语句修改对应的已经存在表中的这条数据。比如如果a字段有唯一性约束且已经含有1这条记录，则以下两条语句的执行结果相同。
+     INSERT INTO table (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE c=c+1;
+     UPDATE table SET c=c+1 WHERE a=1;
+     On duplicate key update子句后面可以跟多个修改，用逗号隔开。
+     上述例子中如果b字段也有唯一性约束，则与此语句的执行结果相同，但一般应该避免出现对应多条的情况。
+     UPDATE table SET c=c+1 WHERE a=1 OR b=2 LIMIT 1;
+
+mysql> create table students2(sid int primary key,sname varchar(20),sex int);
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> insert into students2 values (1,'aaa',1);     ##插入成功
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students2 values (1,'bbb',2);     ##查人失败
+ERROR 1062 (23000): Duplicate entry '1' for key 'PRIMARY'
+
+mysql> insert into students2 values(1,'bbb',0) on duplicate key update sname='bbb';     ##执行成功
+Query OK, 2 rows affected (0.01 sec)
+
+mysql> select * from students2;
++-----+-------+------+
+| sid | sname | sex  |
++-----+-------+------+
+|   1 | bbb   |    1 |
++-----+-------+------+
+1 row in set (0.00 sec)
+
+mysql> insert into students2 values(1,'ccc',0) on duplicate key update sname='ccc',sex=0;     ##执行成功
+Query OK, 2 rows affected (0.00 sec)
+
+mysql> select * from students2;                                                
++-----+-------+------+
+| sid | sname | sex  |
++-----+-------+------+
+|   1 | ccc   |    0 |
++-----+-------+------+
+1 row in set (0.00 sec)
+
+练习：
+将如下数据插入到dept表中
+1,’computer science’ ; 2,’education’; 4,’accounting’
+根据create table … like语句创建teacher_backup表，并插入如下数据：
+1,’susan’,1; 2,’ruth’,4; 3,’vivian’,4
+将teacher_backup表的数据通过insert…select语句插入到teacher表中
+
+     Update语句
+     update语句用于修改表中已经存在的数据
+     单表修改语句结构
+     多表修改语句结构
+     update语句的常规用法
+
+mysql> update students_test set sname='abcd',gender='1' where sid=1;
+Query OK, 1 row affected (0.34 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> update students_test,students_test2 set students_test.sname=students_test2.sname,students_test.gender=students_test2.gender where students_test.sid=students_test2.sid;
+Query OK, 1 row affected (0.14 sec)
+Rows matched: 2  Changed: 1  Warnings: 0
+
+     单表修改是指修改指定单个表中的已经存在数据的一个或多个列的数值；set短语后面跟要修改的列和值； where子句表示限定要修改表中的哪些行数据，如果没有where子句则表示所有行都要修改；order by子句表示update数据按照指定的顺序进行；limit子句表示限定修改数据的行数。
+     多表修改是指修改table_references指定的多个表中满足条件的行数据，多表修改不允许使用order by和limit子句。
+     执行update语句需要修改表的权限。
+     Low_priority关键词表示修改语句需要等待其他链接的读此表操作结束后再执行，只作用在MyISAM, MEMORY, and MERGE存储引擎。
+     Ignore关键词表示当修改语句碰到违反唯一性约束条件等情况是，语句不会报错回退而是报警告信息。
+
+mysql> desc students;
++--------+-------------+------+-----+---------+-------+
+| Field  | Type        | Null | Key | Default | Extra |
++--------+-------------+------+-----+---------+-------+
+| sid    | int(11)     | YES  | UNI | NULL    |       |
+| sname  | varchar(20) | YES  | MUL | NULL    |       |
+| gender | int(11)     | YES  |     | NULL    |       |
++--------+-------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+
+mysql> show create table students;
++----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table    | Create Table                                                                                                                                                                                                                          |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| students | CREATE TABLE `students` (
+  `sid` int(11) DEFAULT NULL,
+  `sname` varchar(20) DEFAULT NULL,
+  `gender` int(11) DEFAULT NULL,
+  UNIQUE KEY `idx_st_sid` (`sid`),
+  KEY `idx_st_union` (`sname`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.04 sec)
+
+mysql> update students set sname='abc' limit 2;     ##只修改首先找到的两行记录
+Query OK, 1 row affected (0.10 sec)
+Rows matched: 2  Changed: 1  Warnings: 0
+
+mysql> update students set sid=1 where sid=2;     ##执行失败，违反唯一性约束
+ERROR 1062 (23000): Duplicate entry '1' for key 'idx_st_sid'
+
+mysql> update ignore students set sid=1 where sid=2;     ##执行成功但数据不会修改
+Query OK, 0 rows affected, 1 warning (0.17 sec)
+Rows matched: 1  Changed: 0  Warnings: 1
+
+     以下语句的col1只会比原值增加1
+     UPDATE t1 SET col1 = col1 + 1;
+     以下语句的col2和col1的结果是一样的
+     UPDATE t1 SET col1 = col1 + 1, col2 = col1;
+     Order by指定update数据的顺序，在某些情况下可以避免错误的发生，比如t表中的id字段是有唯一约束的，则以下第一个语句执行会报错，而第二个语句执行则正常 UPDATE t SET id = id + 1;
+     UPDATE t SET id = id + 1 ORDER BY id DESC;
+
+mysql> update students set sid=sid+1;
+ERROR 1062 (23000): Duplicate entry '2' for key 'idx_st_sid'
+
+mysql> update students2 set sid=sid+1 order by sid desc;
+Query OK, 0 rows affected (0.32 sec)
+Rows matched: 0  Changed: 0  Warnings: 0
+
+     多表修改举例（表之间通过where条件进行join操作）
+     UPDATE items,month SET items.price=month.price WHERE items.id=month.id;
+
+     课堂练习 
+     将所有学号小于等于100的学生的系改为education系 将姓名为ruth且id在100和200之间的老师的姓名改成carey
+
+     delete语句
+     delete语句用于删除表中已经存在的整行数据
+     Tbl_name关键词代表删除数据的目标表
+     Where子句代表被删除数据的满足条件，如果没有where子句则代表所有表数据都删除
+     Order by子句代表删除数据的顺序
+     Limit子句代表被删除数据的行数限制
+
+     delete单表删除举例
+Delete from students;
+delete from students where sid=1;
+Delete from students order by sid;
+Delete from students limit 1; ##只删除先找到的一行
+
+     多表删除语句语法有以下两种
+     同样，被删除的表不能出现在查询子句的子查询中
+     Low_priority关键词表示删除语句需要等待其他链接的读此表操作结束后再执行，只作用在MyISAM, MEMORY, and MERGE存储引擎 Quick关键词是在使用myisam存储引擎时，删除操作不会合并删除表的索引叶节点，这样会在一定程度上加快删除的速度。
+     ignore关键词代表会忽略删除过程中的一些错误
+     Delete语句中的order by子句决定了删除数据的顺序，配合limit子句后在某些情况下也非常有用。
+     比如删除最老的一条记录： DELETE FROM somelog WHERE user = 'jcole' ORDER BY timestamp_column LIMIT 1;
+     多表删除是指从一个或多个表中删除满足条件的数据，其中的table_references代表了多个表的join操作，例如以下两个例子代表从t1和t2表中删除满足条件的数据。
+     DELETE t1, t2 FROM t1 INNER JOIN t2 INNER JOIN t3 WHERE t1.id=t2.id AND t2.id=t3.id; DELETE FROM t1, t2 USING t1 INNER JOIN t2 INNER JOIN t3 WHERE t1.id=t2.id AND t2.id=t3.id;
+     对多表删除语句而言，如果想对表使用别名，则只能在table_references子句中使用，否则会报错。
+     DELETE a1, a2 FROM t1 AS a1 INNER JOIN t2 AS a2 WHERE a1.id=a2.id; ##正确
+     DELETE FROM a1, a2 USING t1 AS a1 INNER JOIN t2 AS a2 WHERE a1.id=a2.id; ##正确
+     DELETE t1 AS a1, t2 AS a2 FROM t1 INNER JOIN t2 WHERE a1.id=a2.id; ##错误
+     DELETE FROM t1 AS a1, t2 AS a2 USING t1 INNER JOIN t2 WHERE a1.id=a2.id; ##错误
+
+     课堂练习
+     删除所有学号大于200的学生信息 删除系名为accounting的所有老师信息
+
+     select语句 
+     Select语句是指从现存的一个或多个表中查看满足条件的数据
+
+     Select语句常规用法：
+     mysql> select * from students;     ##查看表中所有数据
+     mysql> select sid,sname from students;     ##查看所有的sid和sname
+     mysql> select sid,sname from students where sid = 1;     ##查看符合条件的数据
+     mysql> select * from students order by sid;     ##查看排序后的数据
+     mysql> select sid,count(*) from students group by sid having count(*)>=2;      ##查看分组的数据
+     mysql> select * from students a inner join students2 b on a.sid=b.sid;     ##查看两个表链接后的数据
+     mysql> select sid as a,sname as b from students;     ##字段使用别名的方法一
+     mysql> select sid a,sname b from students;     ##字段使用别名的方法二
+
+     Select_expr关键词代表要查询的字段，至少要有一个select_expr，或者如果是查询所有的字段，则用*号代替。
+     Table_references关键词代表查询数据来自的一个或多个表。 
+     Where子句代表只查询满足条件的表数据，如果没有where子句则代表查询表中所有的数据。
+     查询t1和t2表中所有的字段 
+     SELECT * FROM t1 INNER JOIN t2 ... 
+     SELECT t1.*, t2.* FROM t1 INNER JOIN t2 ... 
+     Select_expr也可以使用MySQL内部的函数，另外字段也可以使用别名 
+     SELECT CONCAT(last_name,', ',first_name) AS full_name FROM mytable ORDER BY full_name; 
+     SELECT CONCAT(last_name,', ',first_name) full_name FROM mytable ORDER BY full_name; 
+     Where条件中不能使用select_expr中定义的字段别名，因为语句执行顺序是where在select之前，所以where在执行时字段别名未知。
+
+
+mysql> select sid a,sname b from students where a>1;     ##执行错误
+ERROR 1054 (42S22): Unknown column 'a' in 'where clause'
+mysql> select sid a,sname b from students where sid>1;     ##正确的写法
+
+     From table_references子句中指定表名，tbl_name也可以指定别名，当涉及的表不在当前的数据库时，需要使用db_name.tbl_name来指定表和所在的数据库名。
+     SELECT t1.name, t2.salary FROM employee AS t1, info AS t2 WHERE t1.name = t2.name; 
+     SELECT t1.name, t2.salary FROM employee t1, info t2 WHERE t1.name = t2.name; 
+     当多个表中有相同的字段名，且需要查询出来时，需要在select_expr中使用tbl_name.column_name来显视指定要查询哪个表的字段
+
+     查看另外的数据库的表数据 
+mysql> select * from test2.students;
++------+-------+
+| sid | sname |
++------+-------+
+| 1 | aaaa |
+| 2 | bbbb |
+| 3 | ccc |
++------+-------+
+3 rows in set (0.00 sec)
+
+     两个数据库里的表关联查询 
+
+mysql> select * from students a inner join test2.students b on a.sid = b.sid;
++------+-------+------+-------+
+| sid | sname | sid | sname |
++------+-------+------+-------+
+| 1 | aaa | 1 | aaaa |
+| 2 | bbb | 2 | bbbb |
+| 3 | ccc | 3 | ccc |
+| 1 | aaa | 1 | aaaa |
+| 2 | bbb | 2 | bbbb |
+| 3 | ccc | 3 | ccc |
+| 1 | aaa | 1 | aaaa |
+| 2 | bbb | 2 | bbbb |
+| 3 | ccc | 3 | ccc |
+| 1 | aaa | 1 | aaaa |
+| 2 | bbb | 2 | bbbb |
+| 3 | ccc | 3 | ccc |
++------+-------+------+-------+
+12 rows in set (0.00 sec)
+
+     有相同字段名时要指定表名，可以用表的别名(注意执行顺序) 
+
+mysql> select sname from students a inner join test2.students b on a.sid=b.sid;     ##执行错误
+ERROR 1052 (23000): Column 'sname' in field list is ambiguous
+mysql> select a.sname from students a inner join test2.students b on a.sid=b.sid;     ##正确的写法 
+
+     Group by子句代表分组，通常和聚合函数配合使用，如最大值max, 最小值min, 平均值avg, 个数count，求和sum 
+
+mysql> create table scores(sid int,course_name varchar(20),score int);          
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> insert into scores values(1,'english',88),(1,'chinese',86),(1,'math',90),(2,'english',95),(2,'chinese',84); 
+Query OK, 5 rows affected (0.00 sec)
+Records: 5 Duplicates: 0 Warnings: 0
+
+mysql> select sum(score) from scores;
++------------+
+| sum(score) |
++------------+
+| 443 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select sid,count(*),max(score),min(score),avg(score),sum(score) from scores group by sid;
++------+----------+------------+------------+------------+------------+
+| sid | count(*) | max(score) | min(score) | avg(score) | sum(score) |
++------+----------+------------+------------+------------+------------+
+| 1 | 3 | 90 | 86 | 88.0000 | 264 |
+| 2 | 2 | 95 | 84 | 89.5000 | 179 |
++------+----------+------------+------------+------------+------------+
+2 rows in set (0.00 sec)
+
+     Order by和group by子句可以引用select_expr中的列，通过以下三种方式： 
+     SELECT college, region, seed FROM tournament ORDER BY region, seed; 
+     SELECT college, region AS r, seed AS s FROM tournament ORDER BY r, s; 
+     SELECT college, region, seed FROM tournament ORDER BY 2, 3; 
+     Order by子句表示查询结果按照顺序排列，默认是升序排列，可以指定DESC表明按照降序排列。 
+     Having子句一般是跟在group by子句之后，代表限制分组之后的结果。
+     SELECT user, MAX(salary) FROM users GROUP BY user HAVING MAX(salary) > 10; 
+     Limit子句用来限制查询结果的条数，其后可以带两位>0的整数，第一位代表offset，第二位代表取多少行。 
+     SELECT * FROM tbl LIMIT 5;          # Retrieve first 5 rows，等同于select * from tbl limit 0,5 
+     SELECT * FROM tbl LIMIT 5,10;       # Retrieve rows 6-15  
+
+mysql> select sid,avg(score) from scores group by sid having avg(score)>88;
++------+------------+
+| sid | avg(score) |
++------+------------+
+| 2 | 89.5000 |
++------+------------+
+1 row in set (0.00 sec)
+
+mysql> select * from scores order by sid desc,score; 
++------+-------------+-------+
+| sid | course_name | score |
++------+-------------+-------+
+| 2 | chinese | 84 |
+| 2 | english | 95 |
+| 1 | chinese | 86 |
+| 1 | english | 88 |
+| 1 | math | 90 |
++------+-------------+-------+
+5 rows in set (0.00 sec)
+
+     Select … into语句代表将查询结果写入文件中或者定义的参数变量中。
+     For update关键词代表将查询的数据行加上写锁，直到本事务提交为止。
+     Lock in share mode关键词代表将查询的数据行加上读锁，则其他的链接可以读相同的数据但无法修改加锁的数据。
+     ALL/Distinct关键词代表是否将查询结果中完全重复的行都查询出来，ALL是默认值代表都查询出来，指定distinct代表重复行只显示一次。
+     HIGH_PRIORITY代表赋予读操作较高的操作优先级。
+     Max_statement_time=N子句代表设置语句执行超时时间（毫秒）。
+
+     Straight_join关键词代表强制优化器在表连接操作时按照语句中from子句中的表的顺序执行。
+     Sql_big_result/sql_small_result通常是和group by/distinct一起使用，其作用是事先告诉优化器查询结果是大还是小，以便优化器事先准备好将查询结果存放在磁盘临时表或者快速临时表中以便后续操作。
+     Sql_buffer_result强制将查询结果存入临时表中。
+     Sql_calc_found_rows关键词代表要求查询结果的同时计算结果的行数，以便后续通过SELECT FOUND_ROWS()直接获取行数。
+     Sql_cache/sql_no_cache代表是否直接从query cache中获取查询结果。
+
+mysql> select count(*),count(all sid),count(distinct sid) from scores; 
++----------+----------------+---------------------+
+| count(*) | count(all sid) | count(distinct sid) |
++----------+----------------+---------------------+
+| 5 | 5 | 2 |
++----------+----------------+---------------------+
+1 row in set (0.00 sec)
+
+     Select…into语句 
+     Select … into语句代表将查询结果存入定义的变量或者文件。
+     SELECT ... INTO var_list将查询结果存入定义的变量。
+     SELECT ... INTO OUTFILE将查询结果按照一定的格式写入到文件中。
+     SELECT ... INTO DUMPFILE将查询结果以一行的格式写入到文件中，且只能写入一行。
+     当使用存入变量方法是，需要保证查询结果返回一行，如果不返回数据则报no data错误，如果返回多行则报Result consisted of more than one row错误，当返回行数不确定时，可以用limit 1强制只返回一行。
+     SELECT id, data INTO @x, @y FROM test.t1 LIMIT 1; 
+     使用Select … into outfile ‘file_name’时，文件会创建在本地服务器上，所以要确保你的用户能创建文件，而且此file_name不能已经存在在服务器上以免覆盖其他文件。
+
+mysql> desc students;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| sid   | int(11)     | YES  |     | NULL    |       |
+| sname | varchar(20) | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT sid,sname INTO OUTFILE '/tmp/students.txt' FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n'   FROM students;
+ERROR 1290 (HY000): The MySQL server is running with the --secure-file-priv option so it cannot execute this statement
+
+    /etc/my.cnf配置文件中添加secure_file_priv=/tmp/后重启再执行，成功
+
+mysql> SELECT sid,sname INTO OUTFILE '/tmp/students.txt' FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n'   FROM students;
+Query OK, 36 rows affected (0.00 sec)
+
+mysql> select * into dumpfile '/tmp/students3.txt' from students;    ##结果由一行以上组成
+ERROR 1172 (42000): Result consisted of more than one row
+
+mysql> select * into dumpfile '/tmp/students4.txt' from students limit 1;
+Query OK, 1 row affected (0.00 sec)
+
+    Select语句中的表连接
+    当select语句中涉及到多表查询结果时，就会用到表连接操作。    
+    在MySQL中，join/inner join/cross join三者的意思是一样的。
+    Join语句中表别名的用法
+    SELECT t1.name, t2.salary FROM employee AS t1 INNER JOIN info AS t2 ON t1.name = t2.name;
+    SELECT t1.name, t2.salary FROM employee t1 INNER JOIN info t2 ON t1.name = t2.name;
+    From子句后面还可以跟子查询，但子查询必须带别名
+    SELECT * FROM (SELECT 1, 2, 3) AS t1;
+    当inner join或者表之间用逗号隔开，且没有表之间的关联字段，则代表结果是两者的笛卡尔积。
+    conditional_expr子句一般代表指定两个表之间的关联条件，而where条件中指定查询结果的筛选条件。
+    STRAIGHT_JOIN和Join的用法大致相同，唯一不同是确保左表是先被读取的，以保证优化器的读取顺序。
+
+mysql> select * from students,scores;    ##没有关联条件，表示笛卡尔积
+
+mysql> select * from students inner join scores on students.sid=scores.sid;
+
+mysql> select * from students left join scores on students.sid=scores.sid;
+
+mysql> select * from students left join scores using(sid);
+
+mysql> select * from students left join students2 on students.sid=students2.sid left join scores on students2.sid=scores.sid;
+
+    Select语句中的union
+    Union用来将多个select语句的执行结果合并成一个结果    
+    第一个select语句的column_name会被当做最后查询结果的列名，接下来的每个select语句所一一对应的列应该和第一个语句的列的数据类型最好保持一致。
+    默认情况下union语句会把最终结果中的重复行去掉，这和增加distinct这个关键词的作用一样，如果使用union all则代表最终结果中的重复行保留。
+
+mysql> select sid,sname from students union select sid,sname from students2;    ##去重
+
+mysql> select sid,sname from students union all select sid,sname from students2;    ##不去重
+
+    如果相对union语句的最后结果做排序或者limit限制，则需要将每个select语句用括号括起来，把order by或limit语句放在最后
+
+mysql> (select sid,sname from students) union (select sid,sname from students2) order by sid limit 2;
+
+    Create view语句
+    Create view语句是指将某个查询数据的定义保留下来，以便随时调用。
+    view本身不存储查询结果，只是一个定义
+    Or replace关键词表示当创建的视图已经存在时，执行替换命令。
+    Select_statement子句则是创建视图的select语句，可以是从表中查询数据，也可以从其他视图中查询数据。
+    当视图被创建之后，则其定义就已经固定不会再改变，比如一个视图是由select *创建的，则后续对表增加的字段不会成为视图的一部分，而后续对表删除字段则会导致查询视图失败。
+    创建的视图默认情况下是属于当前数据库的，当要创建到另外的数据库时则需要在视图名前面加上数据库名。
+    CREATE VIEW test.v AS SELECT * FROM test2.t;
+    CREATE VIEW v_today (today) AS SELECT CURRENT_DATE;  ##指定字段名
+    CREATE VIEW v AS SELECT qty, price, qty*price AS value FROM t;
+
+mysql> create view v_students_male as select sid,sname from students where sid=2;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from v_students_male;
+
+mysql> create view v_students_fmale as select sid,sname from students where sid=3;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from v_students_fmale;
+
+mysql> create view v_students_fmale as select sid,sname from students where sid=3;    ##创建相同名称的视图会事变
+ERROR 1050 (42S01): Table 'v_students_fmale' already exists
+
+mysql> create or replace view v_students_fmale as select sid,sname from students where sid=3;    ##添加or replace参数后，原视图被替换
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create view v_test as select * from students;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> alter table students add test int;    ##表增加一个字段
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> select * from v_test;    ##查询视图依然是之前未增加字段的结果
+
+mysql> create view v_test1 as select * from students;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> alter table students drop column test;    ##表删除原来的一个字段
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> select * from v_test1;    ##查询视图失败
+ERROR 1356 (HY000): View 'test3.v_test1' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them
+
+    Order by子句在创建视图过程中是允许的，但当后续的查询视图的语句中有自己的order by子句时则会被忽略掉
+    视图在满足特定条件时是可以执行insert/update/delete语句的，条件就是视图中的每一行和视图对应的表中的每行数据都能一一对应起来
+
+mysql> insert into v_students_male values (3,'ddd');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> update v_students_male set sname='eee' where sid=3;
+Query OK, 0 rows affected (0.00 sec)
+Rows matched: 0  Changed: 0  Warnings: 0
+
+mysql> delete from v_students_male where sid=3;
+Query OK, 0 rows affected (0.00 sec)
+
+    Create index语句
+    Create index语句用来在表中创建索引   
+    Index_col_name可以包含一个字段，也可以包含多个字段（逗号隔开），如果包含多个字段，则表明此索引是复合索引。
+    Unique index代表索引中的值不能有重复。
+    Fulltext index只能创建在innodb和myisam存储引擎的char,varchar和text字段上。
+    Index可以创建在包含NULL值的字段上。
+    Key_block_size=value是在myisam存储引擎的表上指定索引键的block大小。
+
+mysql> create index idx_st_sname on students(sname);    ##创建普通索引
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> create index idx_st_union on students(sname,sex);    ##创建复合索引
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> create unique index idx_st_sid on students(sid);    ##创建唯一索引
+Query OK, 0 rows affected (0.00 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> insert into students values(1,'eee',0);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into students values(1,'eee',0);    ##插入重复数据失败(索引冲突)
+ERROR 1062 (23000): Duplicate entry '1' for key 'idx_st_sid'
+
+    Index_type代表创建索引的类型     
+    Comment ‘string’代表可以为索引添加最长1024的注释
+    CREATE TABLE t1 (id INT);    
+    CREATE INDEX id_index ON t1 (id) COMMENT 'MERGE_THRESHOLD=40';
+
+    Alter database语句
+    Alter database语句用来修改数据库的属性      
+    Db_name可以不指定，如果不指定说明是修改当前数据库的属性
+    Character set代表修改数据库的默认字符集
+    Collate代表修改数据库的默认排序规则
+    如果修改了数据库的默认字符集或排序规则，那数据库中的所有存储过程和函数都需要重新创建一遍
+
+    Alter view语句
+    Alter view语句用来修改视图的定义，本身的语法结构和create view相同，语句所起到的作用和create or replace view语句相同  
+
+mysql> alter view v_students_male as select sid,sname from students where sex=0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from students v_students_male;
+
+    Drop database语句
+    Drop database语句用来删除数据库操作，既删除了数据库也删除了库里的所有表
+    语法为DROP {DATABASE | SCHEMA} [IF EXISTS] db_name
+    删除数据库的操作将删除该数据库所在文件夹下如下格式的文件以及 db.opt文件    
+
+mysql> drop database test2;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> drop database if exists test4;
+Query OK, 0 rows affected (0.00 sec)
+
+    Drop index语句
+    Drop index语句用来删除索引操作   
+    删除tbl_name表中的名字叫index_name的索引
+
+mysql> drop index idx_st_sname on students;
+Query OK, 0 rows affected (0.00 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+    Drop table语句
+    Drop table语句用来删除一个或多个表操作，当然也可以删除临时表    
+    Restrict/cascade两个关键词在5.7版本中没用
+
+mysql> drop table students;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> drop table if exists students;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+    Drop view语句
+    Drop view语句用来删除一个或多个视图    
+    同样，restrict/cascade两个关键词也是无效
+
+mysql> drop view v_students_male;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> drop view if exists v_students_male;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+    Rename table语句
+    Rename table语句用来重命名一个或多个表名    
+    RENAME TABLE old_table TO new_table;    
+    当想让两个表名相互调换时，可以执行语句
+    RENAME TABLE old_table TO tmp_table,new_table TO old_table,tmp_table TO new_table;
+    Rename table能将表中的数据，索引，主键定义都自动转换到新表下，但视图和对原表分配的权限不能自动转换到新表，需要手动执行。
+
+mysql> rename table students2 to students;
+Query OK, 0 rows affected (0.00 sec)
+
+    truncate table语句
+    Truncate table语句用来删除/截断表里的所有数据。
+    和delete删除所有表数据在逻辑上含义相同，但性能更快。
+    类似执行了drop table和create table两个语句。
+
+mysql> truncate table students;
+Query OK, 0 rows affected (0.01 sec)
+
+    alter table语句
+    ALTER TABLE 语句用于在已有的表中添加、修改或删除列
+    Alter table … add [column_name]        ##添加列
+    Alter table … add constraint [name] unique [index/key] [name]
+    Alter table … add constraint [name] foreign key (column_name) references table_name(column_name)
+    Alter table … drop column [column_name]        ##删除表中的列
+    Alter table … drop [index/key] [index_name]  
+
+    ALTER TABLE table_name ADD column_name datatype;   ##增加表中的列
+    ALTER TABLE table_name  DROP COLUMN column_name;   ##删除表中的列
+    ALTER TABLE table_name MODIFY COLUMN column_name datatype;    ##改变表中的列的数据类型(My SQL / Oracle)
+    ALTER TABLE table_name ALTER COLUMN column_name datatype;   ##改变表中的列的数据类型(SQL Server / MS Access)
+    ALTER TABLE table_name MODIFY column_name datatype;        (Oracle 10G 之后版本)
+
+mysql> desc students;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| sid   | int(11)     | NO   | PRI | NULL    |       |
+| sname | varchar(20) | YES  |     | NULL    |       |
+| sex   | int(11)     | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+
+mysql> alter table students add test int;
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table students modify column test varchar(20);
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table students drop column test;
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
