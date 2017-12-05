@@ -1,0 +1,2049 @@
+MySQL常用函数介绍
+
+     操作符优先级
+     一下所有操作符的执行优先级，从高到低，同一行中的操作符优先级相同，相同优先级的情况下则从左到右执行。
+
+(最高)
+     !
+     -（负号）,~（按位取反）
+     ^（按位异或）
+     *,/(DIV),%(MOD)
+     +,-
+     >>,<<
+     &
+     |
+     =(比较运算),<=>,<,<=,>,>=,!=,<>,IN,IS NULL,LIKE,REGEXP
+    BETWEEN AND,CASE,WHEN,THEN,ELSE
+    NOT
+    &&,AND
+    XOR
+    ||,OR
+    =(赋值运算),:=
+(最低)
+
+     如果想改变优先级执行顺序，则可以使用括号
+
+mysql> select 1+2*3;
++-------+
+| 1+2*3 |
++-------+
+|     7 |
++-------+
+1 row in set (0.00 sec)
+
+mysql> select (1+2)*3;
++---------+
+| (1+2)*3 |
++---------+
+|       9 |
++---------+
+1 row in set (0.00 sec)
+
+     对比操作符
+     对比操作符的执行结果为true,false,null三种
+     Between A and B 代表检查值是否在A和B之间
+     Coalesce()代表返回第一个非Null的值
+     =代表相等操作符
+     >代表大于操作符
+     >=代表大于等于操作符
+     Greatest()代表返回最大的值
+     In()代表检查值是否在一系列的值之中
+     Interval()代表返回比第一个参数小的参数的位置   
+     is/is not代表检查值是否与布尔值相同/不同
+     Is not null代表检查值是否是非NULL
+     Is null代表检查值是否是NULL
+     Isnull()代表检查参数是NULL
+     Least()代表返回最小的参数
+     <代表小于操作符
+     <=代表小于等于操作符
+     Like代表字符匹配
+     Not between A and B代表检查值是否不在A和B的范围之内
+     !=/<>代表不等于操作符   
+     Not in()代表检查值是否不在一系列值的当中
+     Not like代表检查值是否不匹配
+     Strcmp()对比两个字符串   
+
+
+     =号对比操作符
+
+mysql> select 1 = 0;
++-------+
+| 1 = 0 |
++-------+
+|     0 |
++-------+
+1 row in set (0.00 sec)
+
+mysql> select '0' = 0;
++---------+
+| '0' = 0 |
++---------+
+|       1 |
++---------+
+1 row in set (0.03 sec)
+
+mysql> select '0.0' = 0;
++-----------+
+| '0.0' = 0 |
++-----------+
+|         1 |
++-----------+
+1 row in set (0.00 sec)
+
+mysql> select '0.01' = 0;
++------------+
+| '0.01' = 0 |
++------------+
+|          0 |
++------------+
+1 row in set (0.02 sec)
+
+mysql> select '.01' = 0.01;
++--------------+
+| '.01' = 0.01 |
++--------------+
+|            1 |
++--------------+
+1 row in set (0.00 sec)
+
+     <>/!=号对比操作符
+
+mysql> select '.01' <> '0.01';
++-----------------+
+| '.01' <> '0.01' |
++-----------------+
+|               1 |
++-----------------+
+1 row in set (0.00 sec)
+
+mysql> select .01 <> '0.01';
++---------------+
+| .01 <> '0.01' |
++---------------+
+|             0 |
++---------------+
+1 row in set (0.00 sec)
+
+mysql> select 'zapp' <> 'zappp';
++-------------------+
+| 'zapp' <> 'zappp' |
++-------------------+
+|                 1 |
++-------------------+
+1 row in set (0.00 sec)
+
+     <=小于等于对比操作符
+
+mysql> select 0.1 <= 2;
++----------+
+| 0.1 <= 2 |
++----------+
+|        1 |
++----------+
+1 row in set (0.00 sec)
+
+     <小于对比操作符
+
+mysql> select 2 < 2;
++-------+
+| 2 < 2 |
++-------+
+|     0 |
++-------+
+1 row in set (0.00 sec)
+
+     >=大于等于对比操作符
+
+mysql> select 2 >= 2;
++--------+
+| 2 >= 2 |
++--------+
+|      1 |
++--------+
+1 row in set (0.01 sec)
+ 
+     >大于对比操作符
+ 
+mysql> select 2 > 2;
++-------+
+| 2 > 2 |
++-------+
+|     0 |
++-------+
+1 row in set (0.00 sec)
+
+     is操作符
+
+mysql> select 1 is true, 0 is false, null is unknown;
++-----------+------------+-----------------+
+| 1 is true | 0 is false | null is unknown |
++-----------+------------+-----------------+
+|         1 |          1 |               1 |
++-----------+------------+-----------------+
+1 row in set (0.00 sec)
+
+     Is not操作符
+
+mysql> select 1 is not unknown, 0 is not unknown, null is not unknown;
++------------------+------------------+---------------------+
+| 1 is not unknown | 0 is not unknown | null is not unknown |
++------------------+------------------+---------------------+
+|                1 |                1 |                   0 |
++------------------+------------------+---------------------+
+1 row in set (0.00 sec)
+
+     Is null对比操作符
+
+mysql> select 1 is null, 0 is null, null is null;
++-----------+-----------+--------------+
+| 1 is null | 0 is null | null is null |
++-----------+-----------+--------------+
+|         0 |         0 |            1 |
++-----------+-----------+--------------+
+1 row in set (0.00 sec)
+
+     Is not null对比操作符
+
+mysql> select 1 is not null, 0 is not null, null is not null;
++---------------+---------------+------------------+
+| 1 is not null | 0 is not null | null is not null |
++---------------+---------------+------------------+
+|             1 |             1 |                0 |
++---------------+---------------+------------------+
+1 row in set (0.00 sec)
+
+     Expr between min and max对比操作符 ( 相当于min <= expr AND expr <= max )
+
+mysql> select 2 between 1 and 3, 2 between 3 and 1;
++-------------------+-------------------+
+| 2 between 1 and 3 | 2 between 3 and 1 |
++-------------------+-------------------+
+|                 1 |                 0 |
++-------------------+-------------------+
+1 row in set (0.00 sec)
+
+mysql> select 1 between 2 and 3;
++-------------------+
+| 1 between 2 and 3 |
++-------------------+
+|                 0 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> select 'b' between 'a' and 'c';
++-------------------------+
+| 'b' between 'a' and 'c' |
++-------------------------+
+|                       1 |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> select 2 between 2 and '3';
++---------------------+
+| 2 between 2 and '3' |
++---------------------+
+|                   1 |
++---------------------+
+1 row in set (0.00 sec)
+
+mysql> select 2 between 2 and 'x-3';
++-----------------------+
+| 2 between 2 and 'x-3' |
++-----------------------+
+|                     0 |
++-----------------------+
+1 row in set, 1 warning (0.00 sec)
+
+     expr NOT BETWEEN min AND max
+     相当于NOT (expr BETWEEN min AND max)
+    
+     COALESCE(value,...)
+     返回第一个非NULL的值，如果没有非null值，则返回NULL  
+
+mysql> select coalesce(null,2);
++------------------+
+| coalesce(null,2) |
++------------------+
+|                2 |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> select coalesce(null,null,null);
++--------------------------+
+| coalesce(null,null,null) |
++--------------------------+
+|                     NULL |
++--------------------------+
+1 row in set (0.00 sec)
+
+     GREATEST(value1,value2,...)
+     返回其中最大的值
+
+mysql> select greatest(2,0);
++---------------+
+| greatest(2,0) |
++---------------+
+|             2 |
++---------------+
+1 row in set (0.04 sec)
+
+mysql> select greatest(34.0,3.0,5.0,767.0);
++------------------------------+
+| greatest(34.0,3.0,5.0,767.0) |
++------------------------------+
+|                        767.0 |
++------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select greatest('B','A','C');
++-----------------------+
+| greatest('B','A','C') |
++-----------------------+
+| C                     |
++-----------------------+
+1 row in set (0.00 sec)
+
+     expr IN (value,...)
+     当expr值能在values中找到，则返回1，否则返回0
+
+mysql> select 2 in (0,3,5,7);
++----------------+
+| 2 in (0,3,5,7) |
++----------------+
+|              0 |
++----------------+
+1 row in set (0.04 sec)
+
+mysql> select 'wefwf' in ('wee','wefwf','weg');
++----------------------------------+
+| 'wefwf' in ('wee','wefwf','weg') |
++----------------------------------+
+|                                1 |
++----------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select (3,4) in ((1,2),(3,4));
++------------------------+
+| (3,4) in ((1,2),(3,4)) |
++------------------------+
+|                      1 |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select (3,4) in ((1,2),(3,5));
++------------------------+
+| (3,4) in ((1,2),(3,5)) |
++------------------------+
+|                      0 |
++------------------------+
+1 row in set (0.00 sec)
+
+     expr NOT IN (value,...)
+     当expr值在values中找不到，则返回1，否则返回0
+
+     Isnull(expr)操作符
+     如果expr是null，则返回1，否则返回0
+
+mysql> select isnull(1+1);
++-------------+
+| isnull(1+1) |
++-------------+
+|           0 |
++-------------+
+1 row in set (0.01 sec)
+
+mysql> select isnull(1/0);
++-------------+
+| isnull(1/0) |
++-------------+
+|           1 |
++-------------+
+1 row in set, 1 warning (0.01 sec)
+
+     LEAST(value1,value2,...)
+     返回最小值，如果其中有值为null，则返回null
+
+mysql> select least(2,0);
++------------+
+| least(2,0) |
++------------+
+|          0 |
++------------+
+1 row in set (0.01 sec)
+
+mysql> select least(34.0,3.0,5.0,767.0);
++---------------------------+
+| least(34.0,3.0,5.0,767.0) |
++---------------------------+
+|                       3.0 |
++---------------------------+
+1 row in set (0.00 sec)
+
+mysql> select least('B','A','C');
++--------------------+
+| least('B','A','C') |
++--------------------+
+| A                  |
++--------------------+
+1 row in set (0.00 sec)
+
+     逻辑操作符
+     逻辑操作符返回1 (TRUE), 0 (FALSE), 或者NULL           
+
+     NOT, !逻辑操作符代表非操作
+
+mysql> select not 10;
++--------+
+| not 10 |
++--------+
+|      0 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select not 0;
++-------+
+| not 0 |
++-------+
+|     1 |
++-------+
+1 row in set (0.00 sec)
+
+mysql> select not null;
++----------+
+| not null |
++----------+
+|     NULL |
++----------+
+1 row in set (0.00 sec)
+
+mysql> select ! (1+1);
++---------+
+| ! (1+1) |
++---------+
+|       0 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select ! 1+1;
++-------+
+| ! 1+1 |
++-------+
+|     1 |
++-------+
+1 row in set (0.00 sec)
+
+     And,&&逻辑操作符
+
+mysql> select 1 and 1;
++---------+
+| 1 and 1 |
++---------+
+|       1 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select 1 and 0;
++---------+
+| 1 and 0 |
++---------+
+|       0 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select 1 and null;
++------------+
+| 1 and null |
++------------+
+|       NULL |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select 0 and null;
++------------+
+| 0 and null |
++------------+
+|          0 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select null and 0;
++------------+
+| null and 0 |
++------------+
+|          0 |
++------------+
+1 row in set (0.00 sec)
+
+     Or, ||逻辑操作符
+
+mysql> select 1 or 1;
++--------+
+| 1 or 1 |
++--------+
+|      1 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select 1 or 0;
++--------+
+| 1 or 0 |
++--------+
+|      1 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select 0 or 0;
++--------+
+| 0 or 0 |
++--------+
+|      0 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select 0 or null;
++-----------+
+| 0 or null |
++-----------+
+|      NULL |
++-----------+
+1 row in set (0.00 sec)
+
+mysql> select 1 or null;
++-----------+
+| 1 or null |
++-----------+
+|         1 |
++-----------+
+1 row in set (0.00 sec)
+
+     Xor逻辑操作符
+
+mysql> select 1 xor 1;
++---------+
+| 1 xor 1 |
++---------+
+|       0 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select 1 xor 0;
++---------+
+| 1 xor 0 |
++---------+
+|       1 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select 1 xor null;
++------------+
+| 1 xor null |
++------------+
+|       NULL |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select 1 xor 1 xor 1;
++---------------+
+| 1 xor 1 xor 1 |
++---------------+
+|             1 |
++---------------+
+1 row in set (0.00 sec)
+
+     分配操作符
+     分配操作符是指赋值操作   
+     :=分配操作符，左边为定义的变量，右边为值
+
+mysql> select @var1,@var2;
++-------+-------+
+| @var1 | @var2 |
++-------+-------+
+| NULL  | NULL  |
++-------+-------+
+1 row in set (0.00 sec)
+
+mysql> select @var1 := 1,@var2;
++------------+-------+
+| @var1 := 1 | @var2 |
++------------+-------+
+|          1 | NULL  |
++------------+-------+
+1 row in set (0.00 sec)
+
+mysql> select @var1,@var2;
++-------+-------+
+| @var1 | @var2 |
++-------+-------+
+|     1 | NULL  |
++-------+-------+
+1 row in set (0.00 sec)
+
+mysql> select @var1,@var2 := @var1;
++-------+----------------+
+| @var1 | @var2 := @var1 |
++-------+----------------+
+|     1 |              1 |
++-------+----------------+
+1 row in set (0.00 sec)
+
+mysql> select @var1,@var2;
++-------+-------+
+| @var1 | @var2 |
++-------+-------+
+|     1 |     1 |
++-------+-------+
+1 row in set (0.00 sec)
+
+mysql> select @var1 := count(*) from students;
++-------------------+
+| @var1 := count(*) |
++-------------------+
+|                 3 |
++-------------------+
+1 row in set (0.09 sec)
+
+mysql> select @var1;
++-------+
+| @var1 |
++-------+
+|     3 |
++-------+
+1 row in set (0.00 sec)
+
+     :=操作符也可以用在update等语句
+
+mysql> select @var1;
++-------+
+| @var1 |
++-------+
+|     3 |
++-------+
+1 row in set (0.00 sec)
+
+mysql> select * from students;
++------+-------+--------+
+| sid  | sname | gender |
++------+-------+--------+
+|    1 | abc   |      1 |
+|    2 | abc   |      1 |
+|    3 | ccc   |      1 |
++------+-------+--------+
+3 rows in set (0.00 sec)
+
+mysql> update students set gender = 2 where sid = @var1 := 1;
+Query OK, 1 row affected (0.07 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select @var1;
++-------+
+| @var1 |
++-------+
+|     1 |
++-------+
+1 row in set (0.00 sec)
+
+mysql> select * from students;
++------+-------+--------+
+| sid  | sname | gender |
++------+-------+--------+
+|    1 | abc   |      2 |
+|    2 | abc   |      1 |
+|    3 | ccc   |      1 |
++------+-------+--------+
+3 rows in set (0.00 sec)
+
+     =操作符在两种情况下会被认为是赋值操作，而其他情况下会认为是对比操作符
+     在set语句中，=操作符会被认为是赋值操作
+
+mysql> set @a=1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @a;
++------+
+| @a   |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+
+     在update语句中的set子句中，=操作符会被认为是赋值操作
+
+     流程控制函数
+     流程控制函数包含以下四种函数     
+     CASE value WHEN [compare_value] THEN result [WHEN [compare_value] THEN result ...] [ELSE result] END
+     当value等于compare_value时，则返回result，否则返回else里的result，如果没有else子句则返回null
+
+mysql> select case 1 when 1 then 'one' when 2 then 'two' else 'more' end;
++------------------------------------------------------------+
+| case 1 when 1 then 'one' when 2 then 'two' else 'more' end |
++------------------------------------------------------------+
+| one                                                        |
++------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+     CASE WHEN [condition] THEN result [WHEN [condition] THEN result ...] [ELSE result] END
+     当第一个condition满足时，则返回result，否则返回else里的result，如果没有else子句时则返回null
+
+mysql> select case when 1>0 then 'true' else 'false' end;
++--------------------------------------------+
+| case when 1>0 then 'true' else 'false' end |
++--------------------------------------------+
+| true                                       |
++--------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select case binary 'B' when 'a' then 1 when 'b' then 2 end;
++-----------------------------------------------------+
+| case binary 'B' when 'a' then 1 when 'b' then 2 end |
++-----------------------------------------------------+
+|                                                NULL |
++-----------------------------------------------------+
+1 row in set (0.02 sec)
+
+     IF(expr1,expr2,expr3)
+     当expr1为1/true时，则返回expr2，否则返回expr3
+
+mysql> select if(1>2,2,3);
++-------------+
+| if(1>2,2,3) |
++-------------+
+|           3 |
++-------------+
+1 row in set (0.00 sec)
+
+mysql> select if(1<2,'yes','no');
++--------------------+
+| if(1<2,'yes','no') |
++--------------------+
+| yes                |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql> select if(strcmp('test','test1'),'no','yes');
++---------------------------------------+
+| if(strcmp('test','test1'),'no','yes') |
++---------------------------------------+
+| no                                    |
++---------------------------------------+
+1 row in set (0.05 sec)
+
+     IFNULL(expr1,expr2)
+     当expr1为非null时，则返回expr1，否则返回expr2
+
+mysql> select ifnull(1,0);
++-------------+
+| ifnull(1,0) |
++-------------+
+|           1 |
++-------------+
+1 row in set (0.00 sec)
+
+mysql> select ifnull(null,10);
++-----------------+
+| ifnull(null,10) |
++-----------------+
+|              10 |
++-----------------+
+1 row in set (0.00 sec)
+
+mysql> select ifnull(1/0,10);
++----------------+
+| ifnull(1/0,10) |
++----------------+
+|        10.0000 |
++----------------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql> select ifnull(1/0,'yes');
++-------------------+
+| ifnull(1/0,'yes') |
++-------------------+
+| yes               |
++-------------------+
+1 row in set, 1 warning (0.00 sec)
+
+     NULLIF(expr1,expr2)
+     当expr1等于expr2时，则返回null，否则返回expr1
+
+mysql> select nullif(1,1);
++-------------+
+| nullif(1,1) |
++-------------+
+|        NULL |
++-------------+
+1 row in set (0.00 sec)
+
+mysql> select nullif(1,2);
++-------------+
+| nullif(1,2) |
++-------------+
+|           1 |
++-------------+
+1 row in set (0.00 sec)
+
+     字符串函数
+     ASCII(str) ：返回str字符串中最左边字符的ascii码值，如果是空串则返回0，如果str是null则返回null
+
+mysql> select ascii('2');
++------------+
+| ascii('2') |
++------------+
+|         50 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select ascii(2);
++----------+
+| ascii(2) |
++----------+
+|       50 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> select ascii('dx');     ##转换的时候只取第一个字符转换
++-------------+
+| ascii('dx') |
++-------------+
+|         100 |
++-------------+
+1 row in set (0.00 sec)
+
+     CHAR(N,... [USING charset_name]) ：将括号中的N转化成ascii码对应的字符，返回这些字符组成的字符串，其中的null会被忽略
+
+mysql> select char(77,121,83,81,'76');
++-------------------------+
+| char(77,121,83,81,'76') |
++-------------------------+
+| MySQL                   |
++-------------------------+
+1 row in set (0.04 sec)
+
+mysql> select char(77,77.3,'77.3');
++----------------------+
+| char(77,77.3,'77.3') |
++----------------------+
+| MMM                  |
++----------------------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql> select charset(char(X'65')),charset(char(X'65' USING utf8));
++----------------------+---------------------------------+
+| charset(char(X'65')) | charset(char(X'65' USING utf8)) |
++----------------------+---------------------------------+
+| binary               | utf8                            |
++----------------------+---------------------------------+
+1 row in set (0.07 sec)
+
+     CHAR_LENGTH(str) ：返回字符串的字符长度
+    
+     CONCAT(str1,str2,...) ：返回括号里所有参数字符串连接在一起，当其中有参数为NULL时则返回NULL
+
+mysql> select concat('My','S','QL');
++-----------------------+
+| concat('My','S','QL') |
++-----------------------+
+| MySQL                 |
++-----------------------+
+1 row in set (0.04 sec)
+
+mysql> select concat('My',null,'QL');
++------------------------+
+| concat('My',null,'QL') |
++------------------------+
+| NULL                   |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select concat(14.3);
++--------------+
+| concat(14.3) |
++--------------+
+| 14.3         |
++--------------+
+1 row in set (0.00 sec)
+
+     CONCAT_WS(separator,str1,str2,...) ：返回以第一个参数为分隔符的连接后的一个字符串，当有参数为NULL时则null被忽略
+
+mysql> select concat_ws(',','First name','Second name','Last name');
++-------------------------------------------------------+
+| concat_ws(',','First name','Second name','Last name') |
++-------------------------------------------------------+
+| First name,Second name,Last name                      |
++-------------------------------------------------------+
+1 row in set (0.05 sec)
+
+mysql> select concat_ws(',','First name',null,'Last name');
++----------------------------------------------+
+| concat_ws(',','First name',null,'Last name') |
++----------------------------------------------+
+| First name,Last name                         |
++----------------------------------------------+
+1 row in set (0.00 sec)
+
+     INSERT(str,pos,len,newstr) ：将str中从pos位置开始后的len个字符替换成newstr字符串
+
+mysql> select insert('Quadratic',3,4,'What');
++--------------------------------+
+| insert('Quadratic',3,4,'What') |
++--------------------------------+
+| QuWhattic                      |
++--------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select insert('Quadratic',-1,4,'What');
++---------------------------------+
+| insert('Quadratic',-1,4,'What') |
++---------------------------------+
+| Quadratic                       |
++---------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select insert('Quadratic',3,100,'What');
++----------------------------------+
+| insert('Quadratic',3,100,'What') |
++----------------------------------+
+| QuWhat                           |
++----------------------------------+
+1 row in set (0.00 sec)
+
+     INSTR(str,substr) ：返回str字符串中第一个出现substr字符串的位置
+
+mysql> select instr('foobarbar','bar');
++--------------------------+
+| instr('foobarbar','bar') |
++--------------------------+
+|                        4 |
++--------------------------+
+1 row in set (0.01 sec)
+
+mysql> select instr('xbar','foobar');
++------------------------+
+| instr('xbar','foobar') |
++------------------------+
+|                      0 |
++------------------------+
+1 row in set (0.01 sec)
+
+     LEFT(str,len) ：返回str字符串中从左边开始的len个长度的字符
+
+mysql> select left('foobarbar',5);
++---------------------+
+| left('foobarbar',5) |
++---------------------+
+| fooba               |
++---------------------+
+1 row in set (0.00 sec)
+
+     LENGTH(str) ：返回str字符串的byte字节长度
+
+mysql> select length('text');
++----------------+
+| length('text') |
++----------------+
+|              4 |
++----------------+
+1 row in set (0.04 sec)
+
+     LOAD_FILE(file_name) 读取文件且返回文件内容为字符串
+     mysql> UPDATE t SET blob_col=LOAD_FILE('/tmp/picture') WHERE id=1;
+
+     LOCATE(substr,str) ：返回str字符串中第一次出现substr字符串的位置，如果没有则返回null
+
+mysql> select locate('bar','foobarbar');
++---------------------------+
+| locate('bar','foobarbar') |
++---------------------------+
+|                         4 |
++---------------------------+
+1 row in set (0.00 sec)
+
+mysql> select locate('xbar','foobarbar');
++----------------------------+
+| locate('xbar','foobarbar') |
++----------------------------+
+|                          0 |
++----------------------------+
+1 row in set (0.00 sec)
+
+     LOCATE(substr,str,pos) ：返回str字符串中从pos位置开始第一次出现substr字符串的位置，如果没有则返回null
+
+mysql> select locate('bar','foobarbar',5);
++-----------------------------+
+| locate('bar','foobarbar',5) |
++-----------------------------+
+|                           7 |
++-----------------------------+
+1 row in set (0.00 sec)
+
+     LOWER(str) ：返回将str字符串中所有字符变换成小写后的字符串，但对二进制文本无效
+
+mysql> select lower('QUADRATICALLY');
++------------------------+
+| lower('QUADRATICALLY') |
++------------------------+
+| quadratically          |
++------------------------+
+1 row in set (0.04 sec)
+
+mysql> set @str = BINARY 'New York';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select lower(@str),lower(convert(@str USING latin1));
++-------------+-----------------------------------+
+| lower(@str) | lower(convert(@str USING latin1)) |
++-------------+-----------------------------------+
+| New York    | new york                          |
++-------------+-----------------------------------+
+1 row in set (0.00 sec)
+
+     LPAD(str,len,padstr) ：将str的左边补充为padstr，直到补充成len长度的字符串并返回；如果str的长度比len长，则返回str中最左边开始的len长度的字符
+
+mysql> select lpad('hi',4,'??');
++-------------------+
+| lpad('hi',4,'??') |
++-------------------+
+| ??hi              |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> select lpad('hi',1,'??');
++-------------------+
+| lpad('hi',1,'??') |
++-------------------+
+| h                 |
++-------------------+
+1 row in set (0.00 sec)
+
+     LTRIM(str) ：将str最左边的空格去掉并返回
+
+mysql> select ltrim('   barbar');
++--------------------+
+| ltrim('   barbar') |
++--------------------+
+| barbar             |
++--------------------+
+1 row in set (0.00 sec)
+
+     REPEAT(str,count) ：将str重复count并组合成字符串返回，如果count<1，则返回空串
+
+mysql> select repeat('MySQL',3);
++-------------------+
+| repeat('MySQL',3) |
++-------------------+
+| MySQLMySQLMySQL   |
++-------------------+
+1 row in set (0.00 sec)
+
+     REPLACE(str,from_str,to_str) ：将所有str字符串中匹配from_str子串的地方都替换成to_str子字符串
+
+mysql> select replace('www.mysql.com','w','Ww');
++-----------------------------------+
+| replace('www.mysql.com','w','Ww') |
++-----------------------------------+
+| WwWwWw.mysql.com                  |
++-----------------------------------+
+1 row in set (0.00 sec)
+
+     REVERSE(str) ：将str字符串中的字符按照倒序组合并返回
+
+mysql> select reverse('abc');
++----------------+
+| reverse('abc') |
++----------------+
+| cba            |
++----------------+
+1 row in set (0.00 sec)
+
+     RIGHT(str,len) ：将str字符串中从右边开始的len个字符返回
+
+mysql> select right('foobarbar',4);
++----------------------+
+| right('foobarbar',4) |
++----------------------+
+| rbar                 |
++----------------------+
+1 row in set (0.00 sec)
+
+     RPAD(str,len,padstr) ：将字符串str从右边开始补充为padstr直到整体长度为len，如果str的长度本身大于len，则返回str中len长度的字符串
+
+mysql> select rpad('hi',5,'?');
++------------------+
+| rpad('hi',5,'?') |
++------------------+
+| hi???            |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> select rpad('hi',1,'?');
++------------------+
+| rpad('hi',1,'?') |
++------------------+
+| h                |
++------------------+
+1 row in set (0.00 sec)
+
+     RTRIM(str) ：将字符串str右边的空格去掉并返回
+
+mysql> select rtrim('barbar    ');
++---------------------+
+| rtrim('barbar    ') |
++---------------------+
+| barbar              |
++---------------------+
+1 row in set (0.00 sec)
+
+     SPACE(N) ：返回N个长度的空格组成的空字符串
+
+mysql> select space(6);
++----------+
+| space(6) |
++----------+
+|          |
++----------+
+1 row in set (0.00 sec)
+
+     SUBSTR(str,pos), SUBSTR(str FROM pos), SUBSTR(str,pos,len), SUBSTR(str FROM pos FOR len)
+     SUBSTRING(str,pos), SUBSTRING(str FROM pos), SUBSTRING(str,pos,len), SUBSTRING(str FROM pos FOR len)
+     如果没有len参数，则返回从pos位置开始的str中的子字符串；如果有len参数，则从pos位置开始返回str中长度为len的子字符串；如果pos为负值，则代表pos从右边开始数
+
+mysql> select substring('Quadratically',5);
++------------------------------+
+| substring('Quadratically',5) |
++------------------------------+
+| ratically                    |
++------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring('foobarbar' from 4);
++-------------------------------+
+| substring('foobarbar' from 4) |
++-------------------------------+
+| barbar                        |
++-------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring('Quadratically',5,6);
++--------------------------------+
+| substring('Quadratically',5,6) |
++--------------------------------+
+| ratica                         |
++--------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring('Sakila',-3);
++------------------------+
+| substring('Sakila',-3) |
++------------------------+
+| ila                    |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring('Sakila',-5,3);
++--------------------------+
+| substring('Sakila',-5,3) |
++--------------------------+
+| aki                      |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring('Sakila' from -4 for 2);
++-----------------------------------+
+| substring('Sakila' from -4 for 2) |
++-----------------------------------+
+| ki                                |
++-----------------------------------+
+1 row in set (0.00 sec)
+
+     SUBSTRING_INDEX(str,delim,count) ：当count为正数，则返回delim出现在str字符串中第count次之前的子字符串，如果是负数，则从右边开始计算
+
+mysql> select substring_index('www.mysql.com','.',2);
++----------------------------------------+
+| substring_index('www.mysql.com','.',2) |
++----------------------------------------+
+| www.mysql                              |
++----------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select substring_index('www.mysql.com','.',-2);
++-----------------------------------------+
+| substring_index('www.mysql.com','.',-2) |
++-----------------------------------------+
+| mysql.com                               |
++-----------------------------------------+
+1 row in set (0.00 sec)
+
+     UPPER(str) ：返回将str字符串中所有字符转换成大写的字符串
+
+mysql> select upper('Hej');
++--------------+
+| upper('Hej') |
++--------------+
+| HEJ          |
++--------------+
+1 row in set (0.00 sec)
+
+     字符串对比函数     
+     expr LIKE pat [ESCAPE 'escape_char']
+     通配符%表示匹配0个或多个字符
+     通配符_表示匹配1个字符
+
+mysql> select 'David!' like 'David_';
++------------------------+
+| 'David!' like 'David_' |
++------------------------+
+|                      1 |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select 'David!' like '%D%v%';
++-----------------------+
+| 'David!' like '%D%v%' |
++-----------------------+
+|                     1 |
++-----------------------+
+1 row in set (0.00 sec)
+
+     当匹配字符中有特殊字符时，可以用 \或者escape来指定特殊字符为字符
+
+mysql> select 'David!' like 'David\_';
++-------------------------+
+| 'David!' like 'David\_' |
++-------------------------+
+|                       0 |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> select 'David_' like 'David\_';
++-------------------------+
+| 'David_' like 'David\_' |
++-------------------------+
+|                       1 |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> select 'David_' like 'David|_' escape '|';
++------------------------------------+
+| 'David_' like 'David|_' escape '|' |
++------------------------------------+
+|                                  1 |
++------------------------------------+
+1 row in set (0.04 sec)
+
+     expr NOT LIKE pat [ESCAPE 'escape_char'] ：是上一个字符串对比函数的反义
+
+     STRCMP(expr1,expr2) ：当expr1等于expr2时等于0，当expr1小于expr2时为-1，反之为1
+
+mysql> select strcmp('text','text2');
++------------------------+
+| strcmp('text','text2') |
++------------------------+
+|                     -1 |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select strcmp('text2','text');
++------------------------+
+| strcmp('text2','text') |
++------------------------+
+|                      1 |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> select strcmp('text','text');
++-----------------------+
+| strcmp('text','text') |
++-----------------------+
+|                     0 |
++-----------------------+
+1 row in set (0.00 sec)
+
+mysql> set @s1 = _latin1 'x' collate latin1_general_ci;
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> set @s2 = _latin1 'X' collate latin1_general_ci;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> set @s3 = _latin1 'x' collate latin1_general_cs;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> set @s4 = _latin1 'X' collate latin1_general_cs;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select strcmp(@s1,@s2),strcmp(@s3,@s4);
++-----------------+-----------------+
+| strcmp(@s1,@s2) | strcmp(@s3,@s4) |
++-----------------+-----------------+
+|               0 |               1 |
++-----------------+-----------------+
+1 row in set (0.00 sec)
+
+     数字函数之算数操作符   
+     + ：加法运算
+     -  ：减法运算
+     *  ：乘法运算
+     /  ：除法运算，返回商
+     % ：求余运算，返回余数   
+
+     /和DIV
+     /代表除法；div代表整数型除法，相除之后只取整数部分
+
+mysql> select 3/5;
++--------+
+| 3/5    |
++--------+
+| 0.6000 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select 102/(1-1);
++-----------+
+| 102/(1-1) |
++-----------+
+|      NULL |
++-----------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql> select 5  div 2, -5 div 2, 5 div -2, -5 div -2;
++----------+----------+----------+-----------+
+| 5  div 2 | -5 div 2 | 5 div -2 | -5 div -2 |
++----------+----------+----------+-----------+
+|        2 |       -2 |       -2 |         2 |
++----------+----------+----------+-----------+
+1 row in set (0.03 sec)
+
+
+    数字函数
+    ABS(X) ：绝对值函数
+
+mysql> select abs(2);
++--------+
+| abs(2) |
++--------+
+|      2 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> select abs(-32);
++----------+
+| abs(-32) |
++----------+
+|       32 |
++----------+
+1 row in set (0.00 sec)
+
+    CEILING(X)/CEIL(X) ：返回>=X值的最小整数
+
+mysql> select ceiling(1.23);
++---------------+
+| ceiling(1.23) |
++---------------+
+|             2 |
++---------------+
+1 row in set (0.00 sec)
+
+mysql> select ceiling(-1.23);
++----------------+
+| ceiling(-1.23) |
++----------------+
+|             -1 |
++----------------+
+1 row in set (0.00 sec)
+
+    FLOOR(X) ：返回<=X值的最大整数
+
+mysql> select floor(1.23),floor(-1.23);
++-------------+--------------+
+| floor(1.23) | floor(-1.23) |
++-------------+--------------+
+|           1 |           -2 |
++-------------+--------------+
+1 row in set (0.00 sec)
+
+    数字函数
+    MOD(N,M), N % M, N MOD M ：取余数操作，返回两者相除之后剩下的余数
+
+mysql> select mod(234,10);
++-------------+
+| mod(234,10) |
++-------------+
+|           4 |
++-------------+
+1 row in set (0.00 sec)
+
+mysql> select 253 % 7;
++---------+
+| 253 % 7 |
++---------+
+|       1 |
++---------+
+1 row in set (0.00 sec)
+
+mysql> select mod(29,9);
++-----------+
+| mod(29,9) |
++-----------+
+|         2 |
++-----------+
+1 row in set (0.00 sec)
+
+mysql> select 29 mod 9;
++----------+
+| 29 mod 9 |
++----------+
+|        2 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> select mod(34.5,3);
++-------------+
+| mod(34.5,3) |
++-------------+
+|         1.5 |
++-------------+
+1 row in set (0.00 sec)
+
+    RAND([N]) ：获取0到1之间的随机小数，比如当想获取7~12之间的随机整数是可以使用
+
+mysql> select floor(7+(rand()*5));
++---------------------+
+| floor(7+(rand()*5)) |
++---------------------+
+|                  10 |
++---------------------+
+1 row in set (0.00 sec)
+
+mysql> select * from students order by rand() limit 1;
++-----+-------+------+
+| sid | sname | sex  |
++-----+-------+------+
+|   2 | bbb   |    1 |
++-----+-------+------+
+1 row in set (0.00 sec)
+
+    ROUND(X), ROUND(X,D) ：四舍五入为D位个小数，当D参数不存在是，则默认为0
+
+mysql> select round(-1.23);
++--------------+
+| round(-1.23) |
++--------------+
+|           -1 |
++--------------+
+1 row in set (0.00 sec)
+
+mysql> select round(-1.58);
++--------------+
+| round(-1.58) |
++--------------+
+|           -2 |
++--------------+
+1 row in set (0.00 sec)
+
+mysql> select round(1.298,1);
++----------------+
+| round(1.298,1) |
++----------------+
+|            1.3 |
++----------------+
+1 row in set (0.00 sec)
+
+mysql> select round(1.298,0);
++----------------+
+| round(1.298,0) |
++----------------+
+|              1 |
++----------------+
+1 row in set (0.00 sec)
+
+mysql> select round(23.298,-1);
++------------------+
+| round(23.298,-1) |
++------------------+
+|               20 |
++------------------+
+1 row in set (0.00 sec)
+
+    TRUNCATE(X,D) ：数字X只保留D位的小数，其余均舍弃
+
+mysql> select truncate(1.223,1);
++-------------------+
+| truncate(1.223,1) |
++-------------------+
+|               1.2 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> select truncate(1.999,1);
++-------------------+
+| truncate(1.999,1) |
++-------------------+
+|               1.9 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> select truncate(1.999,0);
++-------------------+
+| truncate(1.999,0) |
++-------------------+
+|                 1 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> select truncate(-1.999,1);
++--------------------+
+| truncate(-1.999,1) |
++--------------------+
+|               -1.9 |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql> select truncate(122,-2);
++------------------+
+| truncate(122,-2) |
++------------------+
+|              100 |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> select truncate(10.28*100,0);
++-----------------------+
+| truncate(10.28*100,0) |
++-----------------------+
+|                  1028 |
++-----------------------+
+1 row in set (0.00 sec)
+
+    日期和时间函数
+    ADDDATE(date,INTERVAL expr unit), ADDDATE(expr,days)
+    当expr为正数时则为增加时间，为负数时则为减少时间
+    Unit参数可以是任意时间单位
+
+mysql> select adddate('2008-01-02',interval 31 day);
++---------------------------------------+
+| adddate('2008-01-02',interval 31 day) |
++---------------------------------------+
+| 2008-02-02                            |
++---------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select adddate('2008-01-02',31);
++--------------------------+
+| adddate('2008-01-02',31) |
++--------------------------+
+| 2008-02-02               |
++--------------------------+
+1 row in set (0.00 sec)
+
+    ADDTIME(expr1,expr2) ：将expr2的时间增加到expr1上
+
+mysql> select addtime('2017-12-31 23:59:59.999999', '1 1:1:1.000002');
++---------------------------------------------------------+
+| addtime('2017-12-31 23:59:59.999999', '1 1:1:1.000002') |
++---------------------------------------------------------+
+| 2018-01-02 01:01:01.000001                              |
++---------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select addtime('01:00:00.999999','02:00:00.999998');
++----------------------------------------------+
+| addtime('01:00:00.999999','02:00:00.999998') |
++----------------------------------------------+
+| 03:00:01.999997                              |
++----------------------------------------------+
+1 row in set (0.00 sec)
+
+    CONVERT_TZ(dt,from_tz,to_tz) ：将时间dt从from_tz这个时区转换成to_tz这个时区并返回
+
+mysql> select convert_tz('2004-01-01 12:00:00','GMT','MET');
++-----------------------------------------------+
+| convert_tz('2004-01-01 12:00:00','GMT','MET') |
++-----------------------------------------------+
+| NULL                                          |
++-----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select convert_tz('2004-01-01 12:00:00','+00:00','+10:00');
++-----------------------------------------------------+
+| convert_tz('2004-01-01 12:00:00','+00:00','+10:00') |
++-----------------------------------------------------+
+| 2004-01-01 22:00:00                                 |
++-----------------------------------------------------+
+1 row in set (0.00 sec)
+
+    CURDATE()， CURRENT_DATE, CURRENT_DATE() ：返回以yyyy-mm-dd或者yyyymmdd格式的当前时间
+
+mysql> select curdate();
++------------+
+| curdate()  |
++------------+
+| 2017-12-04 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> select curdate()+0;
++-------------+
+| curdate()+0 |
++-------------+
+|    20171204 |
++-------------+
+1 row in set (0.00 sec)
+
+    CURTIME(),CURRENT_TIME,CURRENT_TIME() ：按照hh:mm:ss或者hhmmss格式返回当前时间
+
+mysql> select curtime();
++-----------+
+| curtime() |
++-----------+
+| 22:06:20  |
++-----------+
+1 row in set (0.00 sec)
+
+mysql> select curtime()+0;
++-------------+
+| curtime()+0 |
++-------------+
+|      220633 |
++-------------+
+1 row in set (0.00 sec)
+
+    Now(), CURRENT_TIMESTAMP,CURRENT_TIMESTAMP() ：返回当前的日期和时间，格式为yyyy-mm-dd hh:mi:ss或者yyyymmddhhmiss
+
+mysql> select now();
++---------------------+
+| now()               |
++---------------------+
+| 2017-12-04 22:07:37 |
++---------------------+
+1 row in set (0.00 sec)
+
+mysql> select now()+0;
++----------------+
+| now()+0        |
++----------------+
+| 20171204220745 |
++----------------+
+1 row in set (0.00 sec)
+
+    DATE(expr) ：获取expr中的日期
+
+mysql> select date('2003-12-31 01:02:03');
++-----------------------------+
+| date('2003-12-31 01:02:03') |
++-----------------------------+
+| 2003-12-31                  |
++-----------------------------+
+1 row in set (0.00 sec)
+
+    DATEDIFF(expr1,expr2) ：返回expr1和expr2之间的天数差异，忽略时分秒
+
+mysql> select datediff('2017-12-31 23:59:59','2017-12-30');
++----------------------------------------------+
+| datediff('2017-12-31 23:59:59','2017-12-30') |
++----------------------------------------------+
+|                                            1 |
++----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select datediff('2017-11-30 23:59:59','2017-12-31');
++----------------------------------------------+
+| datediff('2017-11-30 23:59:59','2017-12-31') |
++----------------------------------------------+
+|                                          -31 |
++----------------------------------------------+
+1 row in set (0.00 sec)
+
+    DATE_ADD(date,INTERVAL expr unit), DATE_SUB(date,INTERVAL expr unit) ：增加或者减少时间
+
+mysql> select date_add('2000-12-31 23:59:59',interval 1 second);
++---------------------------------------------------+
+| date_add('2000-12-31 23:59:59',interval 1 second) |
++---------------------------------------------------+
+| 2001-01-01 00:00:00                               |
++---------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('2000-12-31 23:59:59',interval 1 day);
++------------------------------------------------+
+| date_add('2000-12-31 23:59:59',interval 1 day) |
++------------------------------------------------+
+| 2001-01-01 23:59:59                            |
++------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('2000-12-31 23:59:59',interval '1:1' minute_second);
++--------------------------------------------------------------+
+| date_add('2000-12-31 23:59:59',interval '1:1' minute_second) |
++--------------------------------------------------------------+
+| 2001-01-01 00:01:00                                          |
++--------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('2005-01-01 00:00:00',interval '1 1:1:1' day_second);
++---------------------------------------------------------------+
+| date_add('2005-01-01 00:00:00',interval '1 1:1:1' day_second) |
++---------------------------------------------------------------+
+| 2005-01-02 01:01:01                                           |
++---------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('1900-01-01 00:00:00',interval '-1 10' day_hour);
++-----------------------------------------------------------+
+| date_add('1900-01-01 00:00:00',interval '-1 10' day_hour) |
++-----------------------------------------------------------+
+| 1899-12-30 14:00:00                                       |
++-----------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_sub('1998-01-02',interval 31 day);
++----------------------------------------+
+| date_sub('1998-01-02',interval 31 day) |
++----------------------------------------+
+| 1997-12-02                             |
++----------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('1992-12-31 23:59:59.000002',interval '1.999999' second_microsecond);
++-------------------------------------------------------------------------------+
+| date_add('1992-12-31 23:59:59.000002',interval '1.999999' second_microsecond) |
++-------------------------------------------------------------------------------+
+| 1993-01-01 00:00:01.000001                                                    |
++-------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_add('2009-01-30',interval 1 month);
++-----------------------------------------+
+| date_add('2009-01-30',interval 1 month) |
++-----------------------------------------+
+| 2009-02-28                              |
++-----------------------------------------+
+1 row in set (0.00 sec)
+
+    DATE_FORMAT(date,format) ：将date日期时间转换成format格式   
+
+mysql> select date_format('2009_10-04 22:23:00','%W %M %Y');
++-----------------------------------------------+
+| date_format('2009_10-04 22:23:00','%W %M %Y') |
++-----------------------------------------------+
+| Sunday October 2009                           |
++-----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_format('2007-10-04 22:23:00','%H:%i:%s');
++-----------------------------------------------+
+| date_format('2007-10-04 22:23:00','%H:%i:%s') |
++-----------------------------------------------+
+| 22:23:00                                      |
++-----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_format('1900-10-04 22:23:00','%D %y %a %d %m %b %j');
++-----------------------------------------------------------+
+| date_format('1900-10-04 22:23:00','%D %y %a %d %m %b %j') |
++-----------------------------------------------------------+
+| 4th 00 Thu 04 10 Oct 277                                  |
++-----------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_format('1997-10-04 22:23:00','%H %k %I %r % T %S $w');
++------------------------------------------------------------+
+| date_format('1997-10-04 22:23:00','%H %k %I %r % T %S $w') |
++------------------------------------------------------------+
+| 22 22 10 10:23:00 PM  T 00 $w                              |
++------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_format('1999-01-01','%X %V');
++-----------------------------------+
+| date_format('1999-01-01','%X %V') |
++-----------------------------------+
+| 1998 52                           |
++-----------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select date_format('2006-06-00','%d');
++--------------------------------+
+| date_format('2006-06-00','%d') |
++--------------------------------+
+| 00                             |
++--------------------------------+
+1 row in set (0.00 sec)
+
+     DAY(date), DAYOFMONTH(date) ：返回date中日期在当前月份中是第几天
+
+mysql> select dayofmonth('2007-02-03');
++--------------------------+
+| dayofmonth('2007-02-03') |
++--------------------------+
+|                        3 |
++--------------------------+
+1 row in set (0.00 sec)
+
+     DAYNAME(date) ：返回date时间是星期几
+
+mysql> select dayname('2007-02-03');
++-----------------------+
+| dayname('2007-02-03') |
++-----------------------+
+| Saturday              |
++-----------------------+
+1 row in set (0.00 sec)
+
+     DAYOFWEEK(date) ：返回date时间是星期"几"
+
+mysql> select dayofweek('2007-02-03');
++-------------------------+
+| dayofweek('2007-02-03') |
++-------------------------+
+|                       7 |
++-------------------------+
+1 row in set (0.00 sec)
+
+     DAYOFYEAR(date) ：返回date是一年中的第几天，取值范围在1~366
+
+mysql> select dayofyear('2007-02-03');
++-------------------------+
+| dayofyear('2007-02-03') |
++-------------------------+
+|                      34 |
++-------------------------+
+1 row in set (0.04 sec)
+
+     EXTRACT(unit FROM date) ：Unit单元和date_add/date_sub函数中的一样，是获取date日期的unit部分
+
+mysql> select extract(year from '2009-07-02');
++---------------------------------+
+| extract(year from '2009-07-02') |
++---------------------------------+
+|                            2009 |
++---------------------------------+
+1 row in set (0.03 sec)
+
+mysql> select extract(year_month from '2009-07-02 01:02:03');
++------------------------------------------------+
+| extract(year_month from '2009-07-02 01:02:03') |
++------------------------------------------------+
+|                                         200907 |
++------------------------------------------------+
+1 row in set (0.01 sec)
+
+mysql> select extract(day_minute from '2009-07-02 01:02:03');
++------------------------------------------------+
+| extract(day_minute from '2009-07-02 01:02:03') |
++------------------------------------------------+
+|                                          20102 |
++------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select extract(microsecond from '2003-01-02 10:30:00.000123');
++--------------------------------------------------------+
+| extract(microsecond from '2003-01-02 10:30:00.000123') |
++--------------------------------------------------------+
+|                                                    123 |
++--------------------------------------------------------+
+1 row in set (0.01 sec)
+
+     FROM_UNIXTIME(unix_timestamp), FROM_UNIXTIME(unix_timestamp,format)
+     根据给定的unixtime，返回yyyy-mm-dd hh:mi:ss或者yyyymmddhhmiss格式的具体时间，或者按照format返回时间
+
+mysql> select from_unixtime(1447430881);
++---------------------------+
+| from_unixtime(1447430881) |
++---------------------------+
+| 2015-11-14 00:08:01       |
++---------------------------+
+1 row in set (0.00 sec)
+
+mysql> select from_unixtime(1447430881)+0;
++-----------------------------+
+| from_unixtime(1447430881)+0 |
++-----------------------------+
+|              20151114000801 |
++-----------------------------+
+1 row in set (0.00 sec)
+
+mysql> select from_unixtime(unix_timestamp(),'%Y %D %M %h:%i:%s %x');
++--------------------------------------------------------+
+| from_unixtime(unix_timestamp(),'%Y %D %M %h:%i:%s %x') |
++--------------------------------------------------------+
+| 2017 30th November 08:31:07 2017                       |
++--------------------------------------------------------+
+1 row in set (0.00 sec)
+
+     LAST_DAY(date) ：返回date日期所在月份的最后一天日期
+
+mysql> select last_day('2004-02-05');
++------------------------+
+| last_day('2004-02-05') |
++------------------------+
+| 2004-02-29             |
++------------------------+
+1 row in set (0.05 sec)
+
+mysql> select last_day('2004-01-01 01:01:01');
++---------------------------------+
+| last_day('2004-01-01 01:01:01') |
++---------------------------------+
+| 2004-01-31                      |
++---------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select last_day('2003-03-32');
++------------------------+
+| last_day('2003-03-32') |
++------------------------+
+| NULL                   |
++------------------------+
+1 row in set, 1 warning (0.00 sec)
+
+     SYSDATE() ：返回当前日期和时间，格式为yyyy-mm-dd hh:mi:ss或者yyyymmddhhmiss
+     和now()函数的区别在于now()返回的时间是语句执行的时间，而sysdate()返回的时间是该函数执行的时间
+
+mysql> select now(),sleep(2),now();
++---------------------+----------+---------------------+
+| now()               | sleep(2) | now()               |
++---------------------+----------+---------------------+
+| 2017-11-30 20:39:02 |        0 | 2017-11-30 20:39:02 |
++---------------------+----------+---------------------+
+1 row in set (2.00 sec)
+
+mysql> select sysdate(),sleep(2),sysdate();
++---------------------+----------+---------------------+
+| sysdate()           | sleep(2) | sysdate()           |
++---------------------+----------+---------------------+
+| 2017-11-30 20:39:27 |        0 | 2017-11-30 20:39:29 |
++---------------------+----------+---------------------+
+1 row in set (2.01 sec)
+
+     TIME(expr) ：返回expr日期时间中的时间部分
+
+mysql> select time('2003-12-31 01:02:03');
++-----------------------------+
+| time('2003-12-31 01:02:03') |
++-----------------------------+
+| 01:02:03                    |
++-----------------------------+
+1 row in set (0.00 sec)
+
+mysql> select time('2003-12-31 01:02:03.000123');
++------------------------------------+
+| time('2003-12-31 01:02:03.000123') |
++------------------------------------+
+| 01:02:03.000123                    |
++------------------------------------+
+1 row in set (0.00 sec)
+
+     UNIX_TIMESTAMP(), UNIX_TIMESTAMP(date) ：如果没有date参数，则返回当前时间到1970-01-01 00:00:00之间的秒数，如果有date参数，则表示date到1970-01-01 00:00:00之间的秒数
+
+mysql> select unix_timestamp();
++------------------+
+| unix_timestamp() |
++------------------+
+|       1512045753 |
++------------------+
+1 row in set (0.01 sec)
+
+mysql> select unix_timestamp('2015-11-13 10:20:19');
++---------------------------------------+
+| unix_timestamp('2015-11-13 10:20:19') |
++---------------------------------------+
+|                            1447381219 |
++---------------------------------------+
+1 row in set (0.00 sec)
+
+     格式转换函数
+     Cast()和convert()两个函数都可以用来转换数据类型或者转换字符集
+     允许转换的数据类型包括：
+     Binary[N]
+     char[N]
+     Date
+     Datetime 
+     decimal[M,[D]]
+     Time
+     Signed [integer]
+     Unsigned [integer]
+
+mysql> SELECT CONVERT(_latin1'Müller' USING utf8);
++--------------------------------------+
+| CONVERT(_latin1'Müller' USING utf8)  |
++--------------------------------------+
+| MÃ¼ller                              |
++--------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CONVERT('test', CHAR CHARACTER SET utf8);
++------------------------------------------+
+| CONVERT('test', CHAR CHARACTER SET utf8) |
++------------------------------------------+
+| test                                     |
++------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CAST('test' AS CHAR CHARACTER SET utf8);
++-----------------------------------------+
+| CAST('test' AS CHAR CHARACTER SET utf8) |
++-----------------------------------------+
+| test                                    |
++-----------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> select CAST('2000-01-01' AS DATE);
++----------------------------+
+| CAST('2000-01-01' AS DATE) |
++----------------------------+
+| 2000-01-01                 |
++----------------------------+
+1 row in set (0.00 sec)
+
+mysql> select CONVERT('2000-01-01', DATE);
++-----------------------------+
+| CONVERT('2000-01-01', DATE) |
++-----------------------------+
+| 2000-01-01                  |
++-----------------------------+
+1 row in set (0.00 sec)
+
+     聚合函数
+     用在存在group by子句的语句中
+     AVG([DISTINCT] expr) ：计算expr的平均值，distinct关键词表示是否排除重复值
+
+mysql> select avg(sid),gender from students group by gender;
++----------+--------+
+| avg(sid) | gender |
++----------+--------+
+|   2.5000 |      1 |
+|   1.0000 |      2 |
++----------+--------+
+2 rows in set (0.00 sec)
+
+     COUNT(expr) ：计算expr中的个数，如果没有匹配则返回0，注意NULL的区别
+
+mysql> select count(*),gender from students group by gender;
++----------+--------+
+| count(*) | gender |
++----------+--------+
+|        2 |      1 |
+|        1 |      2 |
++----------+--------+
+2 rows in set (0.00 sec)
+
+     COUNT(DISTINCT expr,[expr...]) ：计算有多少个不重复的expr值，注意是计算非NULL的个数
+
+mysql> select count(distinct gender) from students;
++------------------------+
+| count(distinct gender) |
++------------------------+
+|                      2 |
++------------------------+
+1 row in set (0.39 sec)
+
+     MAX([DISTINCT] expr),MIN([DISTINCT] expr) ：返回expr中最大或者最小的值
+
+mysql> select min(sid),max(sid) from students group by gender;
++----------+----------+
+| min(sid) | max(sid) |
++----------+----------+
+|        2 |        3 |
+|        1 |        1 |
++----------+----------+
+2 rows in set (0.00 sec)
+
+     SUM([DISTINCT] expr) ：返回expr的求和值
