@@ -1569,6 +1569,35 @@ mysql> select convert_tz('2004-01-01 12:00:00','+00:00','+10:00');
 +-----------------------------------------------------+
 1 row in set (0.00 sec)
 
+mysql> select convert_tz('2004-01-01 12:00:00','GMT','MET');     转换时区之所以返回null,是因为时区表中没有数据；
+SELECT COUNT(*) FROM mysql.time_zone_name; 
++----------+
+| COUNT(*) |
++----------+
+|        0 |
++----------+
+1 row in set (0.01 sec)
+
+如果需要转换，你需要把Linux下的时区的数据导入到时区表中；
+导入的方法为（命令行执行 ）:  [root@localhost ~]# mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -uroot -pxxxx mysql 
+-pxxxx是你的数据库的密码，最后的这个mysql 是导入到哪个库
+
+mysql> SELECT COUNT(*) FROM mysql.time_zone_name;     ##查看mysql时区表
++----------+
+| COUNT(*) |
++----------+
+|     1750 |
++----------+
+1 row in set (0.04 sec)
+
+mysql> SELECT CONVERT_TZ('2004-01-01 12:00:00','GMT','MET');     ##转换时区成功
++-----------------------------------------------+
+| CONVERT_TZ('2004-01-01 12:00:00','GMT','MET') |
++-----------------------------------------------+
+| 2004-01-01 13:00:00                           |
++-----------------------------------------------+
+1 row in set (0.00 sec)
+
     CURDATE()， CURRENT_DATE, CURRENT_DATE() ：返回以yyyy-mm-dd或者yyyymmdd格式的当前时间
 
 mysql> select curdate();
