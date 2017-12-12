@@ -1,0 +1,850 @@
+SQL高级应用   
+
+     存储过程和函数
+     Create procedure/function语句
+     create procedure用来创建存储过程，create function用来创建函数 
+     函数与存储过程最大的区别就是函数直接有返回值，调用存储过程用call语句，而调用函数就直接引用函数名+参数即可。
+     Definer和sql security子句指定安全环境
+     Definder是MySQL的特殊的访问控制手段，当数据库当前没有这个用户权限时，执行存储过程可能会报错。
+     sql secuirty的值决定了调用存储过程的方式，取值 ：definer（默认）或者invoker
+     definer:在执行存储过程前验证definer对应的用户如：cdq@127.0.0.1是否存在，以及是否具有执行存储过程的权限，若没有则报错。
+     invoker:在执行存储过程时判断inovker即调用该存储过程的用户是否有相应权限，若没有则报错。
+     IN,OUT,INOUT三个参数前的关键词只适用于存储过程，对函数而言所有的参数默认都是输入参数。
+     IN输入参数用于把数值传入到存储过程中；OUT输出参数将数值传递到调用者，初始值是NULL；INOUT输入输出参数把数据传入到存储过程，在存储过程中修改之后再传递到调用者。
+
+     Delimiter命令是改变语句的结束符，MySQL默认的结束符为;号，由于procedure和function中的;号并不代表创建的结束，所以要替换成另外的结束符以便表示创建的结束。
+
+     MySQL存储过程的创建语法：
+     CREATE PROCEDURE  过程名([[IN|OUT|INOUT] 参数名 数据类型[,[IN|OUT|INOUT] 参数名 数据类型…]]) [特性 ...] 过程体
+
+DELIMITER //
+  CREATE PROCEDURE myproc(OUT s int)
+    BEGIN
+      SELECT COUNT(*) INTO s FROM students;
+    END
+    //
+DELIMITER ;
+
+mysql> delimiter //
+mysql> create procedure simpleproc (in param1 int,out param2 int)
+    -> begin
+    -> select count(*) into param2 from students where sid > param1;
+    -> end//
+Query OK, 0 rows affected (0.10 sec)
+
+mysql> delimiter ;
+
+mysql> call simpleproc(1,@a);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select @a;
++------+
+| @a   |
++------+
+|    2 |
++------+
+1 row in set (0.00 sec)
+
+     MySQL函数的创建语法： ( 函数名后的括号是必须的，参数是可选的 )
+    DELIMITER //
+    create function 函数([函数参数[,….]])   
+    Returns 返回类型
+　　Begin
+　　　　If(
+　　　　　　Return (返回的数据)
+　　　　Else
+　　　　　　Return (返回的数据)
+　　　　end if;
+　　end;
+    DELIMITER ;
+
+mysql> create function hello (s char(20))
+    -> returns char(50)
+    -> return concat('hello, ',s,'!');
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select hello('world');
++----------------+
+| hello('world') |
++----------------+
+| hello, world!  |
++----------------+
+1 row in set (0.00 sec)
+
+     Rontine_body子句可以包含一个简单的SQL语句，也可以包含多个SQL语句，通过begin…end将这多个SQL语句包含在一起。
+     MySQL存储过程和函数中也可以包含类似create和drop等DDL语句。
+     Comment子句用来写入对存储过程和函数的注释。
+     Language子句用来表示此存储过程和函数的创建语言。
+     存储过程和函数被标注为deterministic表明当输入相同的参数是会返回相同的结果，反之如果是not deterministic则表示相同参数不会是相同结果，默认是not deterministic。
+
+mysql> select * from students;
++------+-------+--------+------+
+| sid  | sname | gender | sex  |
++------+-------+--------+------+
+|    1 | abc   |      2 | NULL |
+|    2 | abc   |      1 | NULL |
+|    3 | ccc   |      1 | NULL |
++------+-------+--------+------+
+3 rows in set (0.00 sec)
+
+mysql> delimiter //
+mysql> create function simplefunc (param1 int)
+    -> returns int
+    -> begin
+    -> update students set sex = 1 where sid = param1;
+    -> select count(*) into @a from students where sid > param1;
+    -> return @a;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+mysql> select simplefunc(1);
++---------------+
+| simplefunc(1) |
++---------------+
+|             2 |
++---------------+
+1 row in set (0.00 sec)
+
+mysql> select * from students;
++------+-------+--------+------+
+| sid  | sname | gender | sex  |
++------+-------+--------+------+
+|    1 | abc   |      2 |    1 |
+|    2 | abc   |      1 | NULL |
+|    3 | ccc   |      1 | NULL |
++------+-------+--------+------+
+3 rows in set (0.00 sec)
+
+     若用户不存在调用存储过程会失败，需要修改一下存储过程的属性，使其生效。
+
+     创建abc用户并授权
+mysql> create user 'abc'@'%' identified by 'abc';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> grant all privileges on *.* to 'abc'@'%' with grant option;
+Query OK, 0 rows affected (0.04 sec)
+
+     开启新窗口，登录abc账户
+[root@localhost ~]# cd /usr/local/mysql/bin/
+[root@localhost bin]# mysql -u abc -p
+Enter password:
+delimiter //
+CREATE PROCEDURE simpleproc (IN param1 int,OUT param2 INT)
+BEGIN
+SELECT COUNT(*) INTO param2 FROM students where sid>param1; 
+END//
+delimiter ;
+
+[root@localhost ~]# mysql -u root –p
+mysql> call simpleproc(1,@a);
+mysql> drop user cdq@localhost;
+mysql> call simpleproc(1,@a);
+ERROR 1449 (HY000): The user specified as a definer ('cdq'@'localhost') does not exist
+mysql> alter procedure simpleproc sql security invoker;
+mysql> call simpleproc(1,@a);   
+
+     相关属性短语只有咨询含义，并不是强制性的约束
+     Contains sql表明此存储过程或函数不包含读或者写数据的语句，这是默认属性
+     NO SQL表示此存储过程或函数不包含SQL语句
+     Reads sql data表示此存储过程包含诸如select的查询数据的语句，但不包含插入或删除数据的语句
+     Modifies sql data表示此存储过程包含插入或删除数据的语句
+
+     查看存储过程和函数的位置:
+     存储过程和函数都存储在information_schema库 ROUTINES表中。
+mysql> use information_schema;
+Database changed
+
+mysql> select routine_name,routine_type,created,definer  from routines;
+
+     drop procedure/function语句
+     Drop procedure/function语句用来删除指定名称的存储过程或函数   
+     If exists关键词用来避免在删除一个本身不存在的存储过程或函数时，MySQL返回错误。
+
+mysql> use test;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> drop procedure simpleproc;
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> drop function if exists simplefunc;
+Query OK, 0 rows affected (0.00 sec)
+
+     Begin…end复合语句
+     Begin…end语句通常出现在存储过程、函数和触发器中，其中可以包含一个或多个语句，每个语句用;号隔开。
+
+     标签语句
+     标签label可以加在begin…end语句以及loop, repeat和while语句
+     语句中通过iterate和leave来控制流程，iterate表示返回指定标签位置，leave表示跳出标签。
+
+mysql> delimiter //
+mysql> create procedure doiterate(in p1 int,out p2 int)
+    -> begin
+    -> label1:loop
+    -> set p1=p1+1;
+    -> if p1<10 then iterate label1;
+    -> end if;
+    -> leave label1;
+    -> end loop label1;
+    -> set p2=p1;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> delimiter ;
+mysql> call doiterate(1,@a);
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> select @a;
++------+
+| @a   |
++------+
+|   10 |
++------+
+1 row in set (0.00 sec)
+
+mysql> call doiterate(5,@a);
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @a;
++------+
+| @a   |
++------+
+|   10 |
++------+
+1 row in set (0.00 sec)
+
+     Declare语句
+     Declare语句通常用来声明本地(局部)变量、游标、条件或者handler
+     Declare语句只允许出现在begin … end语句中而且必须出现在第一行
+     Declare的顺序也有要求，通常是先声明本地变量，再是游标，然后是条件和handler     
+
+     存储过程中的变量
+     本地(局部)变量可以通过declare语句进行声明
+     声明后的变量可以通过select … into var_list进行赋值，或者通过set语句赋值，或者通过定义游标并使用fetch … into var_list赋值
+     通过declare声明变量方法：   
+     使用default指定变量的默认值，如果没有指定默认值则初始值为NULL
+     Type指明该变量的数据类型
+     声明的变量作用范围为被声明的begin … end语句块之间
+     声明的变量和被引用的数据表中的字段名要区分开来
+    
+     全局变量通过@符号声明：例如 set @x = 1;
+
+mysql> delimiter //
+mysql> create procedure sp1(v_sid int)
+    -> begin
+    -> declare xname varchar(5) default 'bob';
+    -> declare xsex int;
+    -> select sname,sex into xname,xsex from students where sid = v_sid;
+    -> select xname,xsex;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> delimiter ;
+mysql> call sp1(1);
++-------+------+
+| xname | xsex |
++-------+------+
+| abc   |    1 |
++-------+------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+     流程控制语句
+     MySQL支持if,case,iterate,leave,loop,while,repeat语句作为存储过程和函数中的流程控制语句，另外return语句也是函数中的特定流程控制语句。 
+
+     流程控制case语句：Case语句在存储过程或函数中表明了复杂的条件选择语句 。     
+     第一个语句中case_value与后面各句的when_value依次做相等的对比，如果碰到相等的，则执行对应的后面的statement_list，否则接着对比，如果都没有匹配，则执行else后面的statement_list
+     第二个语句中当search_condition满足true/1的结果时，则执行对应的statement_list，否则执行else对应的statement_list
+     Statement_list可以包含一个或多个SQL语句
+
+mysql> delimiter //
+mysql> create procedure exp_case(v_sid int)
+    -> begin
+    -> declare v int default 1;
+    -> select sex into v from students where sid=v_sid;
+    -> case v
+    -> when 0 then update students set sex=1 where sid=v_sid;
+    -> when 1 then update students set sex=0 where sid=v_sid;
+    -> else update students set sex=-1 where sid=v_sid;
+    -> end case;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> delimiter ;
+mysql> call exp_case(1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> delimiter //
+mysql> create procedure exp_case2(v_sid int)
+    -> begin
+    -> declare v int default 1;
+    -> select sex into v from students where sid=v_sid;
+    -> case
+    -> when v=0 then update students set sex=1 where sid=v_sid;
+    -> when v=1 then update students set sex=0 where sid=v_sid;
+    -> else update students set sex=-1 where sid=v_sid;
+    -> end case;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+mysql> call exp_case2(1);
+Query OK, 1 row affected (0.03 sec)
+
+     流程控制IF语句：IF语句在存储过程或函数中表明了基础的条件选择语句。
+     IF语句中如果search_condition满足true/1的条件，则执行对应的statement_list，否则再判断elseif中的search_condition是否满足true/1的条件，如果都不满足则执行else中的statement_list语句
+     Statement_list中可以包含一个或多个SQL语句 
+
+mysql> delimiter //
+mysql> create function simplecompare(n int,m int)
+    -> returns varchar(20)
+    -> begin
+    -> declare s varchar(20);
+    -> if n > m then set s = '>';
+    -> elseif n = m then set s = '=';
+    -> else set s = '<';
+    -> end if;
+    -> set s = concat(n,' ',s,' ',m);
+    -> return s;
+    -> end //
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> delimiter ;
+mysql> select simplecompare(1,2);
++--------------------+
+| simplecompare(1,2) |
++--------------------+
+| 1 < 2              |
++--------------------+
+1 row in set (0.00 sec)
+          
+          ##嵌套if语句
+mysql> delimiter //
+mysql> create function verbosecompare(n int,m int)
+    -> returns varchar(50)
+    -> begin
+    -> declare s varchar(50);
+    -> if n = m then set s = 'equals';
+    -> else
+    -> if n > m then set s = 'greater';
+    -> else set s = 'less';
+    -> end if;
+    -> set s = concat('is ',s,' than');
+    -> end if;
+    -> set s = concat(n,' ',s,' ',m,'.');
+    -> return s;
+    -> end //
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> delimiter ;
+mysql> select verbosecompare(1,2);
++---------------------+
+| verbosecompare(1,2) |
++---------------------+
+| 1 is less than 2.   |
++---------------------+
+1 row in set (0.04 sec)
+
+     流程控制iterate语句
+     Iterate语句仅出现在loop,repeat,while循环语句中，其含义表示重新开始此循环   
+     Label语句：表示自定义的标签名   
+     Leave语句：表明退出指定标签的流程控制语句块
+     通常会用在begin…end，以及loop,repeat,while的循环语句中   
+     Label表明要退出的标签名
+
+     流程控制iterate和leave语句
+mysql> delimiter //
+mysql> create procedure doiterate(in p1 int,out p2 int)
+    -> begin
+    -> label1:loop
+    -> set p1 = p1 + 1;
+    -> if p1 < 10 then iterate label1;
+    -> end if;
+    -> leave label1;
+    -> end loop label1;
+    -> set p2 = p1;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> delimiter ;
+
+     流程控制loop语句
+     Loop语句是存储过程或函数中表达循环执行的一种方式   
+     其中的statement_list可以包含一个或多个SQL语句
+mysql> delimiter //
+mysql> create procedure doiterate(p1 int)
+    -> begin
+    -> label1:loop
+    -> set p1 = p1 + 1;
+    -> if p1 < 10 then iterate label1;
+    -> end if;
+    -> leave label1;
+    -> end loop label1;
+    -> set @x = p1;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+
+     流程控制repeat语句
+     repeat语句是存储过程或函数中表达循环执行的一种方式     
+     Repeat语句中statement_list一直重复执行直到search_condition条件满足
+     Statement_list可以包含一个或多个SQL语句
+mysql> delimiter //
+mysql> create procedure dorepeat(p1 int)
+    -> begin
+    -> set @x = 0;
+    -> repeat set @x = @x + 1;
+    -> until @x > p1 end repeat;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+mysql> call dorepeat(1000);
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> select @x;
++------+
+| @x   |
++------+
+| 1001 |
++------+
+1 row in set (0.00 sec)
+
+     流程控制while语句
+     while语句是存储过程或函数中表达循环执行的一种方式   
+     当search_condition返回为true时，则循环执行statement_list中的语句，直到search_condition的结果返回为false
+     Statement_list中可以包含一个或多个SQL语句
+
+mysql> delimiter //
+mysql> create procedure dowhile()
+    -> begin
+    -> declare v1 int default 5;
+    -> while v1 > 0 do
+    -> update students set sex=-1 where sid = v1;
+    -> set v1 = v1 -1;
+    -> end while;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> delimiter ;
+mysql> call dowhile();
+Query OK, 1 row affected (0.04 sec)
+
+mysql> select * from students;
++------+-------+--------+------+
+| sid  | sname | gender | sex  |
++------+-------+--------+------+
+|    1 | abc   |      2 |   -1 |
+|    2 | abc   |      1 |   -1 |
+|    3 | ccc   |      1 |   -1 |
++------+-------+--------+------+
+3 rows in set (0.00 sec)
+
+     流程控制return语句
+     Return语句用在函数中，用来终结函数的执行并将指定值返回给调用者   
+     在函数中必须要有至少一个return语句，当有多个return语句时则表明函数有多种退出的方式 
+
+mysql> delimiter //
+mysql> create function doreturn()
+    -> returns int
+    -> begin
+    -> select sex into @a from students where sid = 1;
+    -> if @a = 1 then return 1;
+    -> elseif @a = 0 then return 0;
+    -> else return 999;
+    -> end if;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> delimiter ;
+mysql> select doreturn();
++------------+
+| doreturn() |
++------------+
+|        999 |
++------------+
+1 row in set (0.02 sec)
+
+     强化练习
+1. 创建一个存储过程proc1，将10万行如下格式的测试数据插入到students表中，数据中只有sid是递增的，其余字段值都是固定的
+（1，’mike’,1,1),
+  (2,’mike’,1,1),
+  (3,’mike’,1,1),
+  …….
+  (100000,’mike’,1,1)
+2. 在第1题的基础上，创建另一个存储过程proc2，插入10万行数据到students表中，但要求gender字段在0和1之间随机，dept_id在1~3这三个整数之间取随机，sname字段固定是’mike’
+     
+     1.方法一
+mysql> delimiter //
+mysql> create procedure proc1()
+    -> begin
+    -> declare n int default 1;
+    -> while n<=100000 do
+    -> insert into students values(n,'mike',1,1);
+    -> set n=n+1;
+    -> end while;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> delimiter ;
+mysql> call proc1();
+Query OK, 1 row affected (5 min 35.20 sec)
+
+     1.方法二
+mysql> delimiter //
+mysql> create procedure proc1_3()
+    -> begin
+    -> declare n int default 1;
+    -> start_label:loop
+    -> if n>100000 then leave start_label;
+    -> end if;
+    -> insert into students values(n,'mike',1,1);
+    -> set n=n+1;
+    -> end loop;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+
+第二题：
+mysql> delimiter //
+mysql> create procedure proc2()
+    -> begin
+    -> declare n int default 1;
+    -> declare v_gender_id int;
+    -> declare v_dept_id int;
+    -> while n<=10000 do
+    -> set v_gender_id = round(rand());
+    -> set v_dept_id = floor(rand()*3+1);
+    -> insert into students values(n,'mike',v_gender_id,v_dept_id);
+    -> set n=n+1;
+    -> end while;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+mysql> truncate students;
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> call proc2();
+Query OK, 1 row affected (34.11 sec)
+
+     创建一个函数，输入参数为学生学号sid，函数返回对应学生的平均成绩 创建一个函数，输入参数是老师的id，函数返回该老师所教授的课程数量，并将这些学习这些课程的每个学生如果成绩不及格，把学生的sid和对应课程名字、成绩insert到表A中，如果成绩及格，把学生的sid和对应的课程名字、成绩insert到表B中
+
+Delimiter //
+Create function func1(v_sid int)
+Returns int
+Begin
+Select avg(score) into @x from score where sid=v_sid;
+Return @x;
+End;
+//
+Delimiter ;
+
+Delimiter //
+Create function func2(v_teacher_id int)
+Returns int
+Begin
+Declare n_course int;
+Select count(*) into n_course from course where teacher_id=v_teacher_id;
+Insert into A select a.sid,b.course_name,a.score
+From score a inner join course b on a.course_id=b.id
+Where b.teacher_id=v_teacher_id and a.score<60;
+Insert into B select a.sid,b.course_name,a.score
+From score a inner join course b on a.course_id=b.id
+Where b.teacher_id=v_teacher_id and a.score>=60;
+Return n_course;
+End;
+//
+Delimiter ;
+
+cursor游标
+cursor游标用来声明一个数据集
+游标的声明必须在变量和条件声明之后，在handler声明之前 
+
+CREATE PROCEDURE curdemo()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE a CHAR(16);
+  DECLARE b, c INT;
+  DECLARE cur1 CURSOR FOR SELECT id,data FROM test.t1;
+  DECLARE cur2 CURSOR FOR SELECT i FROM test.t2;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  OPEN cur1;
+  OPEN cur2;
+  read_loop: LOOP
+    FETCH cur1 INTO a, b;
+    FETCH cur2 INTO c;
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+    IF b < c THEN
+      INSERT INTO test.t3 VALUES (a,b);
+    ELSE
+      INSERT INTO test.t3 VALUES (a,c);
+    END IF;
+  END LOOP;
+  CLOSE cur1;
+  CLOSE cur2;
+  END;
+
+     cursor游标close语句
+     Cursor close语句用来关闭之前打开的游标   
+     如果关闭一个未打开的游标，则MySQL会报错
+     如果在存储过程和函数中未使用此语句关闭已经打开的游标，则游标会在声明的begin…end语句块执行完之后自动关闭
+
+     cursor游标declare语句
+     Cursor declare语句用来声明一个游标和指定游标对应的数据集合，通常数据集合是一个select语句   
+     Select_statement代表一个select语句
+
+     cursor游标fetch语句
+     Cursor fetch语句用来获取游标指定数据集的下一行数据并将各个字段值赋予后面的变量   
+     数据集中的字段需要和INTO语句中定义的变量一一对应
+     数据集中的数据都fetch完之后，则返回NOT FOUND 
+
+     cursor游标open语句
+     Open cursor语句用来打开一个之前已经声明好的游标   
+
+     Declare condition语句
+     Declare condition语句命名特定的错误条件，而该特定错误可以在declare…handler中指定处理方法   
+     Condition_value指定特定的错误条件，可以有以下两种形式
+     Mysql_err_code表示MySQL error code的整数
+     SQLSTATE sqlstate_value表示MySQL中用5位字符串表达的语句状态
+     比如在MySQL中1051error code表示的是unknown table的错误，如果要对这个错误做特殊处理，可以用三种种方法：
+
+DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN
+    -- body of handler
+  END; 
+
+DECLARE no_such_table CONDITION FOR 1051;
+DECLARE CONTINUE HANDLER FOR no_such_table
+  BEGIN
+    -- body of handler
+  END; 
+
+DECLARE no_such_table CONDITION FOR SQLSTATE '42S02';
+DECLARE CONTINUE HANDLER FOR no_such_table
+  BEGIN
+    -- body of handler
+  END;
+
+     Declare handler语句
+     Declare handler语句用来声明一个handler来处理一个或多个特殊条件，当其中的某个条件满足时则触发其中的statement语句执行
+     Statement可以是一个简单SQL语句，也可以是begin…end组成的多个语句 
+
+     Handler_action子句声明当执行完statement语句之后应该怎么办
+     Continue代表继续执行该存储过程或函数
+     Exit代表退出声明此handler的begin…end语句块
+     Undo参数已经不支持
+     Condition_value的值有以下几种：
+     Mysql_err_code表示MySQL error code的整数
+     SQLSTATE sqlstate_value表示MySQL中用5位字符串表达的语句状态
+     Condition_name表示之前在declare…condition语句中声明的名字
+     SQLWARNING表示所有的警告信息，即SQLSTATE中01打头的所有错误
+     NOT FOUND表示查完或者查不到数据，即SQLSTATE中02打头的所有错误
+     SQLEXCEPTION表示所有的错误信息 
+
+DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN
+    -- body of handler
+  END;
+
+DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02'
+  BEGIN
+    -- body of handler
+  END;
+
+DECLARE CONTINUE HANDLER FOR SQLWARNING
+  BEGIN
+    -- body of handler
+  END;
+
+DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+  BEGIN
+    -- body of handler
+  END; 
+
+     当condition发生但没有声明handler时，则存储过程和函数依照如下规则处理
+     发生SQLEXCEPTION错误，则执行exit退出
+     发生SQLWARNING警告，则执行contine继续执行
+     发生NOT FOUND情况，则执行continue继续执行
+
+     比如SQLSTATE '23000'表示主键冲突错误
+
+mysql> create table t(s1 int,primary key (s1));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> delimiter //
+mysql> create procedure handlerdemo()
+    -> begin
+    -> declare continue handler for sqlstate '23000' set @x2 = 1;
+    -> set @x = 1;
+    -> insert into t values(1);
+    -> set @x = 2;
+    -> insert into t values(1);
+    -> set @x = 3;
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delimiter ;
+mysql> call handlerdemo();
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select @x,@x2;
++------+------+
+| @x   | @x2  |
++------+------+
+|    3 |    1 |
++------+------+
+1 row in set (0.00 sec)
+
+     练习
+     创建一个过程，将男生和女生的学生数据分别存储到男生表和女生表中。
+     创建一个过程，将每个学生的课程数，平均成绩，及格课程数，非及格课程数都存放在单独的表中
+     创建一个过程，将学生sid作为输入参数，结果展示出该学生的课程数和平均成绩
+     创建一个函数，以学生sid作为输入参数，将该学生的课程数和平均成绩存放在单独的表中，并返回平均成绩
+
+Create procedure proc1() asBeginInsert into students_male select * from students where gender=0;Insert into students_female select * from students where gender=1;End;
+ Create procedure proc2() asBeginInsert into temp1 select Sid,count(*),avg(score),sum(case when score>=60 then 1 else 0 end),sum(case when score<60 then 1 else 0 end)From scoreGroup by Sid;End;
+ Create procedure proc3(IN st_id) asBeginSelect sid,count(*),avg(score) from score where sid=st_id group by Sid;End;
+ Create function func1(st_id int) asReturn int BeginDeclare avg_score int;Insert into temp2 select Sid,count(*),avg(score) from score where sid=st_id group by Sid;Select avg(score) into avg_score from score where sid=st_id group by Sid;Return avg_score; End;
+
+
+     练习
+     用游标的方法实现创建一个函数，输入参数是老师的id，函数返回该老师所教授的课程数量，并将这些学习这些课程的每个学生如果成绩不及格，把学生的sid和对应课程名字、成绩insert到表A中，如果成绩及格，把学生的sid和对应的课程名字、成绩insert到表B中
+
+delimiter //
+Create function func3(v_teacher_id int)
+Returns int
+Begin
+Declare n_course int;
+Declare v_sid int default null;
+Declare v_course_name varchar(60);
+Declare v_score int;
+Declare cur1 cursor for select a.sid,b.course_name,a.score
+From score a inner join course b on a.coure_id=b.id
+Where b.teacher_id=v_teacher_id;
+declare continue handler for not found set v_sid=null;
+Select count(*) into n_course from course where teacher_id=v_teacher_id;
+Open cur1;
+Fetch cur1 into v_sid,v_course_name,v_score;
+While v_sid is not null do
+If v_score<60 then
+ insert into A select v_sid,v_course_name,v_score;
+ Else
+ insert into B select v_sid,v_course_name,v_score;
+ End if;
+Fetch cur1 into v_sid,v_course_name,v_score;
+End while;
+Close cur1;
+Return n_course;
+End;
+//
+Delimiter ;
+
+     create trigger语句
+     create trigger语句用来创建一个触发器，触发器的作用是当表上有对应SQL语句发生时，则触发执行
+     触发器创建时需要指定对应的表名tbl_name
+     不能在临时表上创建触发器   
+
+     Definer关键词用来指定trigger的安全环境
+     Trigger_time指定触发器的执行时间，BEFORE和AFTER指定触发器在表中的每行数据修改前或者后执行
+     Trigger_event指定触发该触发器的具体事件
+     INSERT当新的一行数据插入表中时触发，比如通过执行insert,load data,replace语句插入新数据
+     UPDATE当表的一行数据被修改时触发，比如执行update语句时
+     DELETE当表的一行数据被删除时触发，比如执行delete,replace语句时
+     当执行insert into … on duplicate key update语句时，当碰到重复行执行update时，则触发update下的触发器
+     从5.7.2版本开始，可以创建具有相同trigger_time和trigger_event的同一个表上的多个触发器，默认情况下按照创建的时间依次执行，通过指定FOLLOWS/PRECEDES改变执行顺序，即FOLLOWS时表示新创建的触发器后执行，PRECEDES则表示新触发器先执行 
+
+     Trigger_body表示触发器触发之后要执行的一个或多个语句，在内部可以引用涉及表的字段，OLD.col_name表示行数据被修改或删除之前的字段数据，NEW.col_name表示行数据被插入或修改之后的字段数据
+
+mysql> create table students_bak(sid int,old_sname varchar(64),new_sname varchar(64),old_sex int,new_sex int,add_time datetime);
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> delimiter //
+mysql> create trigger simple_trigger
+    -> after update on students for each row
+    -> begin
+    -> insert into students_bak values(old.sid,old.sname,new.sname,old.sex,new.sex,now());
+    -> end;
+    -> //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> delimiter ;
+
+mysql> update students set sname='abc',sex=1 where sid = 1;
+Query OK, 1 row affected (0.04 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from students_bak;
++------+-----------+-----------+---------+---------+---------------------+
+| sid  | old_sname | new_sname | old_sex | new_sex | add_time            |
++------+-----------+-----------+---------+---------+---------------------+
+|    1 | mike      | abc       |       2 |       1 | 2017-12-13 00:31:43 |
++------+-----------+-----------+---------+---------+---------------------+
+1 row in set (0.00 sec)
+
+     查看触发器的位置:
+     触发器存储在information_schema库TRIGGERS表中。
+mysql> use information_schema;
+Database changed
+
+mysql> mysql> select trigger_name,created,definer  from triggers;
+
+     Drop trigger语句
+     Drop trigger语句用来删除一个触发器 
+     If exists短语用来避免删除不存在的触发器时引发报错
+     当你执行drop table时，表上的触发器也被drop掉了
+
+mysql> drop trigger simple_trigger;
+Query OK, 0 rows affected (0.00 sec)
+
+     强化练习
+     在score表上创建一个触发器，当有新的数据插入时，在score_bak表里记录新插入的数据的所有字段信息，并用tstamp字段标注数据的插入时间  
+     在score表上创建一个触发器，当有新的数据插入时，在score_avg表里记录对应学生的所有课程的平均成绩（注意，如果在score_avg表里已经有了学生的记录，需要update）
+
+Delimiter //
+Create trigger trig1
+after insert on score
+For each row
+Begin
+Insert into score_bak(Sid,course_id,score,tstamp) values(new.sid,new.course_id,new.score,now());
+End;
+//
+Delimiter ; 
+
+Delimiter //
+Create trigger trig2
+After insert on score
+For each row
+Begin
+Declare n int;
+Select count(*) into n from score_avg where sid=new.sid;
+If n=1 then
+ update score_avg set avg_score=(select avg(score) from score where sid=new.sid) where sid=new.sid;
+ Else 
+ insert into score_avg select sid,avg(score) from score where sid=new.sid group by sid;
+ End if;
+End;
+//
+Delimiter ; 
+
