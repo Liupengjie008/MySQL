@@ -808,7 +808,7 @@ mysql> select * from students_bak;
 mysql> use information_schema;
 Database changed
 
-mysql> mysql> select trigger_name,created,definer  from triggers;
+mysql> select trigger_name,created,definer  from triggers;
 
      Drop trigger语句
      Drop trigger语句用来删除一个触发器 
